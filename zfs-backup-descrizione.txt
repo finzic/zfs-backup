@@ -1,0 +1,58 @@
+Sul r4spi ossia il sistema di backup, creo un pool 'degenere' con un solo disco:
+ls -la /dev/disk/by-id
+[...]
+
+zpool create backuppool ata-WDC_WD40EZRZ-00WN9B0_WD-WCC4E6PJYC83
+sudo zfs set mountpoint=/mnt/backup bupool
+
+Cosi' ho creato un pool con un solo disco
+Creazione snapshot su MORLA con data attuale e dataset "Test" .
+ sudo zfs snapshot zfspool/Test@$(date +%Y.%m.%d-%H.%M.%S)
+
+Questa e' la lista degli snapshot. Si puo' prendere il valore della taglia dello snapshot da trasferire. Per il primo, si deve prendere il valore della colonna 'REFER'; per gli altri, 'USED'
+finzic@morla /mnt/raid/Test  $ zfs list -t snapshot
+NAME                                 USED  AVAIL     REFER  MOUNTPOINT
+zfspool/Common@2024.06.02-22.28.10     0B      -      300G  -
+zfspool/Test@2024.06.03-09.56.26     117K      -     5.50G  -
+zfspool/Test@2024.06.03-22.40.32     123K      -     5.50G  -
+zfspool/Test@2024.06.03-22.42.54     139K      -     5.50G  -
+zfspool/Test@2024.06.03-22.44.28    85.2K      -     5.50G  -
+
+pv serve per dare informazioni sul trasferimento tra pipe. -s <size> consente di avere l'informazione sulla taglia del trasferimento. Il problema e' che potrebbero esserci cose tipo 5.50G che devi tradurre in 5500M
+
+Spedizione del primo snapshot:
+sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv bupool/Test
+
+fatto bene: 
+sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s $(./parse-size.sh $ref1) | ssh finzic@r4spi.local sudo zfs recv bupool/Test
+
+problema: 
+- finzic come utente non ci va bene; vogliamo un utente tipo 'bu' che NON e' un sudoer ma usa uno script che fa setuid che fa la funzione sudo zfs etc etc
+
+
+spedizione snapshot successive al primo
+ 2097  sudo zfs send -i zfspool/Test@2024.06.03-09.56.26 zfspool/Test@2024.06.03-22.40.32 | pv | ssh finzic@r4spi.local sudo zfs recv bupool/Test
+ 2098  sudo zfs send -i zfspool/Test@2024.06.03-22.40.32 zfspool/Test@2024.06.03-22.42.54 | pv | ssh finzic@r4spi.local sudo zfs recv bupool/Test
+ 2099  sudo zfs send -i zfspool/Test@2024.06.03-22.42.54 zfspool/Test@2024.06.03-22.44.28 | pv | ssh finzic@r4spi.local sudo zfs recv bupool/Test
+
+Poi la configurazione di SAMBA:
+
+[zfs-test]
+        comment = ZFS Test snapshots
+        path = /mnt/backup/Test
+        valid users = finzic
+        vfs objects = shadow_copy2
+        shadow:snapdir = /mnt/backup/Test/.zfs/snapshot
+        shadow:basedir = /mnt/backup/Test
+        shadow:sort = desc
+        shadow:format = %Y.%m.%d-%H.%M.%S
+        shadow:localtime = yes
+
+Utente 'finzic' di SAMBA: io in questo esempio ho usato sudo smbpasswd finzic e ho inserito una cavolo di password una volta e per tutte.
+Sarebbe meglio avere un utente diverso, tipo bu, che pero' sia protetto o da chiave SSH o qualcosa di simile, non semplice password locale
+
+Poi c'e' il problema di sudo per eseguire zfs . Non so se si possa fare altrimenti; se no, allora tocca creare un utente tra i sudoers per fare gli SPEDITORI, contando che sul r4spi ci sia l'utente specificato e sia sgaio abbastanza (leggi permessi).
+
+Si puo' fare uno script cui si passa il nome del dataset (Documents, Video, Foto...) e lui pensa a fare lo snapshot, spedirlo a r4spi, e fine li'.
+Questo script gira sul server chiaramente.
+
