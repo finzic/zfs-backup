@@ -1,6 +1,39 @@
 # zfs-backup
 A script and a method for my home personal backup system based on ZFS
 
+## TL;DR Quick Summary
+
+- Server system: Ubuntu 22.04, 3 x 2TB WD RED HDDs used as ZFS raidz1 vdev pool (pool name: ``zfspool``). Around 4TB total available storage capacity. 
+- Several dataset defined on this pool such as 
+	- zfspool/Documents, 
+	- zfspool/Music, 
+	- zfspool/Foto
+- Datasets are available to my default Windows PC as Samba shares, protected by simple username and password on my LAN. 
+
+- Backup system: Raspberry Pi 4, 4GB RAM, 1 x 4TB WD BLUE used as ZFS simple vdev (just a vdev with a single device)
+
+## System Initial Configuration
+- Install packages on server: 
+	- zfstools-linux
+	- pv 
+	- rsync
+
+- Install packages on backup system: 
+	- zfstools-linux
+	- rsync
+
+### Create ZFS pool on server 
+``zpool create \
+		-o ashift=12 \ 
+		-f \
+		zfspool \
+		raidz \
+		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E(1234) \
+		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE (3456) \
+		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4 (5678)\
+		``
+
+
 ## Background
 
 I have a home server with very old hardware, by today's standards. I have been using it for at least 15 years without major hiccups do save all my personal important media: photos, videos, music, documents, the same old stuff you know. 
@@ -24,7 +57,7 @@ This system exposes some SMB shares, such as "Foto", "Video", "Music", "Document
 
 4) A (set of) bash scripts that backup my data to the Raspberry Pi 4 and create snapshots using ``rsync``
 
-5) Backup folders and snapshots are made available through Samba: folders are available as shares and snapshots appear as Windows' "Previons Versions". 
+5) Backup folders and snapshots are made available through Samba: folders are available as shares and snapshots appear as Windows' "Previous Versions". 
 
 ## Why change from MDADM RAID-5 to ZFS? 
 
