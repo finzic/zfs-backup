@@ -23,15 +23,21 @@ A script and a method for my home personal backup system based on ZFS
 	- rsync
 
 ### Create ZFS pool on server 
-```zpool create \
--o ashift=12 \ 
--f \
-zfspool \
-raidz \
-/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E(1234) \
-/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE (3456) \
-/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4 (5678)\
+- Install 3 unformatted disks. They only need a GPT partition table to be created but no partitions. ZFS will handle them all. 
+
 ```
+zpool create \    # command to create a pool 
+-o ashift=12 \    # alignment of data, read somewhere (!)
+-f \              # forces use of vdevs
+zfspool \         # name of the pool
+raidz \           # use raidz1 strategy, similar to RAID 5 of mdadm: you can loose 1 disk.
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E(1234) \ serial # of 1st disk 
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE(3456) \ serial # of 2nd disk
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4(5678) \ serial # of 3rd disk
+```
+
+Now we have a pool. Test it with ``zpool status``: 
+
 
 
 ## Background
