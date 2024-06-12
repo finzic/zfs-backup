@@ -23,15 +23,15 @@ A script and a method for my home personal backup system based on ZFS
 	- rsync
 
 ### Create ZFS pool on server 
-``zpool create \
-		-o ashift=12 \ 
-		-f \
-		zfspool \
-		raidz \
-		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E(1234) \
-		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE (3456) \
-		/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4 (5678)\
-		``
+```zpool create \
+-o ashift=12 \ 
+-f \
+zfspool \
+raidz \
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E(1234) \
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE (3456) \
+/dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4 (5678)\
+```
 
 
 ## Background
