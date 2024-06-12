@@ -4,7 +4,7 @@
 DEST_ADDR=r4spi.local
 SOURCE_BASE=/mnt/raid
 SOURCE_DATASET=Foto
-DEST_DATASET=foto
+DEST_DATASET=Foto
 REMOTE_USERNAME=finzic
 
 SOURCE_PATH=$SOURCE_BASE/$SOURCE_DATASET
@@ -36,7 +36,9 @@ cd $SOURCE_BASE
 #
 # find differences and write them in a file: 
 # rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
-rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:/mnt/storage/Foto | egrep '<'| cut -d' ' -f2- > /tmp/changed-files.txt
+rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} \ 
+| egrep '<' \
+| cut -d' ' -f2- > /tmp/changed-files.txt
 
 # if changed-files.txt has no lines there are no changed files, so do not do anything - the backup operation stops. 
 CHANGES=$(wc -l < /tmp/changed-files.txt) 
@@ -54,8 +56,7 @@ else
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
 	cd $SOURCE_PATH
-	echo "Sending md5sums of modified files to $DEST_ADDR
-..."
+	echo "Sending md5sums of modified files to $DEST_ADDR ..."
 	scp /tmp/md5-$DEST_DATASET.txt bu@$DEST_ADDR:/tmp/
 
 	cat << EOF > /tmp/check-md5sums.sh

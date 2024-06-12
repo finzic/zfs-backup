@@ -3,14 +3,16 @@ A script and a method for my home personal backup system based on ZFS
 
 ## TL;DR Quick Summary
 
-- Server system: Ubuntu 22.04, 3 x 2TB WD RED HDDs used as ZFS raidz1 vdev pool (pool name: ``zfspool``). Around 4TB total available storage capacity. 
+- Server system: Ubuntu 22.04, 3 x 2TB WD RED HDDs used as ZFS raidz1 vdev pool (pool name: ``zfspool``). Around 4TB total available storage capacity.
+- Backup system: Raspberry Pi 4, 4GB RAM, 1 x 4TB WD BLUE used as ZFS simple vdev (just a vdev with a single device) 
 - Several dataset defined on this pool such as 
 	- zfspool/Documents, 
 	- zfspool/Music, 
 	- zfspool/Foto
-- Datasets are available to my default Windows PC as Samba shares, protected by simple username and password on my LAN. 
-
-- Backup system: Raspberry Pi 4, 4GB RAM, 1 x 4TB WD BLUE used as ZFS simple vdev (just a vdev with a single device)
+- Datasets are available to my default Windows PC as Samba shares, protected by simple username and password on my LAN.
+- Subsequent snapshots on the server are transferred _at file system level_ to the backup system, taking advantage of full bandwidth on your LAN
+- The Backup System presents the snapshots as _Windows "Previous Versions"_, as read-only folders, which is extremely useful if I deleted some file during the life of my system and wanted to get back at that file later on. 
+- Snapshots on server are created via ``zfs-backup.sh`` script, which transfers the snapshot to the Backup System, along with a list of checksums of the modified files, so that the Backup System could verify all of them at the and of the snapshot transfer. 
 
 ## System Initial Configuration
 - Install packages on server: 
