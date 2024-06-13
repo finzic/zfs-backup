@@ -39,9 +39,11 @@ cd $SOURCE_BASE
 # find differences and write them in a file: 
 # rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
 # NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders. 
-rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} \ 
-| egrep '<' \
-| cut -d' ' -f2- > /tmp/changed-files.txt
+echo "rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} " 
+rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+
+#| egrep '<' \
+#| cut -d' ' -f2- > /tmp/changed-files.txt
 
 # if changed-files.txt has no lines there are no changed files, so do not do anything - the backup operation stops. 
 CHANGES=$(wc -l < /tmp/changed-files.txt) 
