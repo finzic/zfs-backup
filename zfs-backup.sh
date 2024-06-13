@@ -3,8 +3,10 @@
 ### VARIABLES. 
 DEST_ADDR=r4spi.local
 SOURCE_BASE=/mnt/raid
+SOURCE_ZFS_POOL=zfspool
 SOURCE_DATASET=Foto
 DEST_DATASET=Foto
+DEST_ZFS_POOL=backuppool
 REMOTE_USERNAME=finzic
 
 SOURCE_PATH=$SOURCE_BASE/$SOURCE_DATASET
@@ -36,6 +38,7 @@ cd $SOURCE_BASE
 #
 # find differences and write them in a file: 
 # rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+# NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders. 
 rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} \ 
 | egrep '<' \
 | cut -d' ' -f2- > /tmp/changed-files.txt
@@ -49,10 +52,17 @@ else
 	echo "There are $CHANGES changed files - calculating md5sums parallelizing 4x..."
 	cat /tmp/changed-files.txt | xargs -L1 -P4 md5sum > /tmp/md5-$DEST_DATASET.txt
 	echo "md5sums of modified files: "
-	cat /tmp/md5-$DEST_DATASET.txt
-	# NOTABENE - check paths! 
+	cat /tmp/md5-$DEST_DATASET.txt 
 	
+	# Create snapshot in server's ZFS dataset
 	echo "Creating ZFS snapshot..."
+	# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
+	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
+	echo ">>> sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
+
+	exit 1
+	 
+	
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
 	cd $SOURCE_PATH
