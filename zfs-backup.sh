@@ -52,6 +52,10 @@ then
 	echo "No changed files in $SOURCE_PATH - nothing to backup - operation completed." 
 else
 	echo "There are $CHANGES changed files - calculating md5sums parallelizing 4x..."
+	## sperimentare questo https://www.youtube.com/watch?v=OpaiGYxkSuQ&list=PL284C9FF2488BC6D1&index=1
+	
+	## cat /tmp/changed-files.txt | time parallel -j+0 --eta '<comando da parallelizzare> {}' ### {} = singola riga di input.
+
 	cat /tmp/changed-files.txt | xargs -L1 -P4 md5sum > /tmp/md5-$DEST_DATASET.txt
 	echo "md5sums of modified files: "
 	cat /tmp/md5-$DEST_DATASET.txt 

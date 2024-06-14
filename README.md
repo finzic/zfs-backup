@@ -19,6 +19,7 @@ A script and a method for my home personal backup system based on ZFS
 	- zfstools-linux
 	- pv 
 	- rsync
+	- parallel
 
 - Install packages on backup system: 
 	- zfstools-linux
