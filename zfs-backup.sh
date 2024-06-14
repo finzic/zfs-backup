@@ -32,15 +32,15 @@ else
 	echo "No previous md5-$DEST_DATASET.txt file to remove, let's proceed."
 fi
 
-cd $SOURCE_BASE
+cd ${SOURCE_BASE}
 # correct if changes are present: 
 # rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- | xargs md5sum > /tmp/md5-$DEST_DATASET.txt
 #
 # find differences and write them in a file: 
 # rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
 # NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders. 
-echo "rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} " 
-rsync -nia --out-format="%i \"%f\"" ${SOURCE_BASE}/${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+echo "rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} " 
+rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${REMOTE_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
 
 #| egrep '<' \
 #| cut -d' ' -f2- > /tmp/changed-files.txt
