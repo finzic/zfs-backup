@@ -61,7 +61,7 @@ else
 	sed -i 's/\"//g' /tmp/changed-files.txt
 	
 	## calculating md5sum in parallel with eta display: 
-	cat /tmp/changed-files.txt | time parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
+	cat /tmp/changed-files.txt | parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
 
 	echo "md5sums of modified files: "
 	cat /tmp/md5-$DEST_DATASET.txt 
@@ -70,10 +70,7 @@ else
 	echo "Creating ZFS snapshot..."
 	# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-	echo ">>> sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
-
-	exit 1
-	 
+	echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
 	
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
