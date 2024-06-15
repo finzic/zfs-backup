@@ -58,10 +58,10 @@ else
 
 	## cat /tmp/changed-files.txt | xargs -L1 -P4 md5sum > /tmp/md5-$DEST_DATASET.txt
 	## remove quotes from file so that parallel can run and pass paths to md5sum correctly 
-	sed 's/\"//g' </tmp/changed-files.txt >/tmp/new-changed-files.txt
+	sed -i 's/\"//g' /tmp/changed-files.txt
 	
 	## calculating md5sum in parallel with eta display: 
-	cat /tmp/new-changed-files.txt | time parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
+	cat /tmp/changed-files.txt | time parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
 
 	echo "md5sums of modified files: "
 	cat /tmp/md5-$DEST_DATASET.txt 
