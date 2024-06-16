@@ -43,6 +43,9 @@ Now we have a pool. Test it with ``zpool status``:
 
 
 
+## References 
+- parallel usage: https://www.youtube.com/watch?v=OpaiGYxkSuQ&list=PL284C9FF2488BC6D1&index=2
+
 ## Background
 
 I have a home server with very old hardware, by today's standards. I have been using it for at least 15 years without major hiccups do save all my personal important media: photos, videos, music, documents, the same old stuff you know. 
