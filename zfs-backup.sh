@@ -10,6 +10,9 @@ DEST_DATASET=Foto
 DEST_ZFS_POOL=backuppool
 REMOTE_USERNAME=finzic
 
+## ERROR CODES
+ERR_LESS_THAN_2_SNAPS=100
+
 SOURCE_PATH=$SOURCE_BASE/$SOURCE_DATASET
 DEST_BASE=/mnt/storage
 SNAPSHOT_SOURCE=/mnt/storage/$DEST_DATASET-sv
@@ -83,10 +86,25 @@ else
 	# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
+	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
 	
-	exit 1 
+	if $DEBUG ; then 
+		echo ">>> list of ZFS snapshots available: " 
+		zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}
+	fi
 
+	# check there are at least 2 snapshots: 
 
+	N_SNAPS=$(zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 2 | wc -l)
+	if [ $N_SNAPS -lt 2 ]; then 
+		echo "There are less than 2 snapshots:" 
+		zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} 
+		exit $ERR_LESS_THAN_2_SNAPS
+    fi
+
+	
+	echo " >>>> END - DEVELOPMENT STILL IN ACTION <<<< " 
+    exit 1
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
 	cd $SOURCE_PATH
