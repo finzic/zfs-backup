@@ -72,6 +72,9 @@ else
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
 	
+	exit 1 
+
+	
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
 	cd $SOURCE_PATH
