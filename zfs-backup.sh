@@ -86,7 +86,7 @@ else
 	# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
-	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
+	# sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
 	
 	if $DEBUG ; then 
 		echo ">>> list of ZFS snapshots available: " 
@@ -100,7 +100,7 @@ else
 		echo "There are less than 2 snapshots:" 
 		zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} 
 		exit $ERR_LESS_THAN_2_SNAPS
-    fi
+        fi
 
 	FIRST_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
 	SECOND_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 1 | awk '{print $1}' )
@@ -109,11 +109,11 @@ else
 	echo "second snapshot = $SECOND_SNAP"
 	echo "Sending snapshot"
 	if $DEBUG; then 
-		echo " zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${REMOTE_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+		echo " zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${REMOTE_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
 	fi
 	sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${REMOTE_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
 
-	echo " >>>> END - DEVELOPMENT STILL IN ACTION <<<< " 
+	echo "=== END - DEVELOPMENT STILL IN ACTION === " 
     exit 1
 	# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 	THIS=$(pwd)
