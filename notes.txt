@@ -1,0 +1,32 @@
+### problema di zfs send da server a backup: 
+Sending snapshot
+zfs send -i zfspool/Foto@2024.06.06-02.50.10 zfspool/Foto@2024.06.16-16.33.39 | pv -ptebar | ssh finzic@r4spi.local sudo zfs recv backuppool/Foto
+ERRORE: 
+?? cannot receive incremental stream: destination backuppool/Foto has been modified since most recent snapshot
+
+To solve this, 
+1) set property readonly = on on the dataset : 
+    sudo zfs set readonly=on backuppool/Foto
+
+2) find the last or only snapshot and rollback to it: 
+    sudo zfs rollback backuppool/Foto@2024.06.06-02.50.10 
+
+---------
+
+finzic@morla ~/src/zfs-backup  (main) $ sudo zfs diff zfspool/Test@2024.06.03-22.42.54  zfspool/Test@2024.06.03-22.44.28  
+M       /mnt/raid/Test/
++       /mnt/raid/Test/file-fourth-snapshot.txt
+-       /mnt/raid/Test/file-second-snap.txt
+M       /mnt/raid/Test/file-third-snap.txt
+finzic@morla ~/src/zfs-backup  (main) $ sudo zfs diff zfspool/Test@2024.06.03-22.40.32  zfspool/Test@2024.06.03-22.44.28  
+M       /mnt/raid/Test/
++       /mnt/raid/Test/file-fourth-snapshot.txt
+-       /mnt/raid/Test/file-second-snap.txt
++       /mnt/raid/Test/file-third-snap.txt
+finzic@morla ~/src/zfs-backup  (main) $ sudo zfs diff zfspool/Test@2024.06.03-22.40.32  zfspool/Test@2024.06.03-22.42.54 
+M       /mnt/raid/Test/
+M       /mnt/raid/Test/file-second-snap.txt
++       /mnt/raid/Test/file-third-snap.txt
+
+
+
