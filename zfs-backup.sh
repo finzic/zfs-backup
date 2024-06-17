@@ -88,13 +88,13 @@ if [ ${RES} -eq 0 ]; then
 	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
 	## retrieve its tag 
 	OUTPUT=$(zfs list -t snapshot zfspool/Test | tail -n 1)
-	SNAPSHOT =$(echo $OUTPUT | awk '{print $1}')
+	SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
 	echo "Snapshot is ${SNAPSHOT}" 
 	## retrieve length and convert into something good for PV
 	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
 	PV_SIZE=$(parse_size ${ORIG_SIZE})
 	
-	if  ${DEBUG]} ; then 
+	if  ${DEBUG} ; then 
 		echo "ORIG_SIZE = ${ORIG_SIZE}; PV_SIZE = ${PV_SIZE}" 
 	fi
 	## send the snapshot to the backup server
@@ -107,7 +107,7 @@ if [ ${RES} -eq 0 ]; then
 	else
 		echo "Error in sending first snapshot: ${RES}"
     fi
-	
+
 
 else 
 	echo "The dataset '${SOURCE_DATASET} is already present in the backup system -> performing new snapshot and transfer."
