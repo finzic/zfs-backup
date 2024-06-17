@@ -82,7 +82,7 @@ echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 
 if [ ${RES} -eq 0 ]; then 
-	echo "The dataset '${SOURCE_DATASET} is not present in the backup system -> performing first snapshot and transfer."
+	echo "The dataset '${SOURCE_DATASET}' is not present in the backup system -> performing first snapshot and transfer."
 	## Perform first snapshot
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
