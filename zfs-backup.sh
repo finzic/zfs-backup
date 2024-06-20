@@ -16,6 +16,8 @@ DEST_USERNAME=finzic
 
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
+ERR_FIRST_SNAPSHOT=101
+ERR_SETTING_DEST_READONLY=102
 
 ##############
 # Functions  #
@@ -99,15 +101,26 @@ if [ ${RES} -eq 0 ]; then
 	fi
 	## send the snapshot to the backup server
 	##sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
-    echo "Sending first snapshot to backup system..." 
+    echo -n "Sending first snapshot to backup system..." 
 	sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
-		echo "Everything OK"
+		echo "... Everything OK"
 	else
-		echo "Error in sending first snapshot: ${RES}"
+		echo "... Error in sending first snapshot: ${RES}"
+		exit ${ERR_FIRST_SNAPSHOT}
     fi
 
+	# Setting the dataset as readonly is necessary for subsequent snapshot sending.
+	echo -n "Setting dataset as readonly..." 
+	ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs set readonly=on ${DEST_ZFS_POOL}/${DEST_DATASET}
+	RES=$?
+	if [ ${RES} -eq 0 ]; then
+		echo "... OK"
+	else
+		echo "Error setting ${DEST_ZFS_POOL}/${DEST_DATASET} as readonly"
+		exit ${ERR_SETTING_DEST_READONLY}   
+	fi
 
 else 
 	echo "The dataset '${SOURCE_DATASET} is already present in the backup system -> performing new snapshot and transfer."
