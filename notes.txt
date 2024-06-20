@@ -28,5 +28,17 @@ M       /mnt/raid/Test/
 M       /mnt/raid/Test/file-second-snap.txt
 +       /mnt/raid/Test/file-third-snap.txt
 
-
+snap base : 
+    file0.txt # file that is never changed 
+second-snap
+    file-2.txt
+    file-1.txt
+third-snap
+    file-3.txt
+    modify file-2.txt
+    delete file-1.txt
+fourth-snap
+    file-4.txt
+    modify file-3.txt
+    modify file-2.txt
 
