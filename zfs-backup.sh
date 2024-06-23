@@ -174,7 +174,7 @@ else
 		# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 		SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 		echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
-		# sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
+		sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
 
 		if $DEBUG ; then 
 			echo ">>> list of ZFS snapshots available: " 
@@ -183,7 +183,7 @@ else
 
 		# check there are at least 2 snapshots: 
 
-		N_SNAPS=$(zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 2 | wc -l)
+		N_SNAPS=$(zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | grep ${SOURCE_DATASET} | tail -n 2 | wc -l)
 		if [ $N_SNAPS -lt 2 ]; then 
 			echo "There are less than 2 snapshots:" 
 			zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} 
