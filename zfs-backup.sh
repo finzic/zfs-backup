@@ -197,27 +197,26 @@ else
 		echo "second snapshot = $SECOND_SNAP"
 		echo "Sending snapshot"
 		if $DEBUG; then 
-			echo " zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
+			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
 		fi
 		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
 
-		echo "=== END - DEVELOPMENT STILL IN ACTION === " 
-	
-	    exit 1
-		
+		# echo "=== END - DEVELOPMENT STILL IN ACTION === " 
+	    # exit 1	
 		# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
+
 		THIS=$(pwd)
-		cd $SOURCE_PATH
-		echo "Sending md5sums of modified files to $DEST_ADDR ..."
-		scp /tmp/md5-$DEST_DATASET.txt bu@$DEST_ADDR:/tmp/
+		cd ${SOURCE_PATH}
+		echo "\nSending md5sums of modified files to ${DEST_ADDR} ..."
+		scp /tmp/md5-${DEST_DATASET}.txt ${DEST_USERNAME}@${DEST_ADDR}:/tmp/
 
 		cat << EOF > /tmp/check-md5sums.sh
 #!/bin/bash
-cd $DEST_DATASET
-md5sum -c /tmp/md5-$DEST_DATASET.txt
+cd ${DEST_DATASET}
+md5sum -c /tmp/md5-${DEST_DATASET}.txt
 EOF
 
-		ssh bu@$DEST_ADDR 
+		ssh ${DEST_USERNAME}@${DEST_ADDR}
 "bash -s" < /tmp/check-md5sums.sh
 		EXIT_CODE=$?
 		echo "result = $EXIT_CODE "
@@ -225,22 +224,13 @@ EOF
 		if [ $EXIT_CODE -eq 0 ]
 		then
 			echo "remote md5sum is correct."
-			if [ $SNAPSHOT == 'true' ]
-			then
-		        	echo "Creating snapshot on destination"
-			        ssh -t finzic@$DEST_ADDR
-				 "sudo btrfs subvolume snapshot $SNAPSHOT_SOURCE $SNAPSHOT_DEST/$DEST_DATASET\_$(date +%Y.%m.%d-%H.%M.%S)"
-			else
-				echo "No snapshot will be created."
-			fi	
 		else
-		        echo "remote md5 check gave error code $EXIT_CODE"
+		    echo "remote md5 check gave error code $EXIT_CODE"
 		fi
 		cd $THIS
 		echo "Backup operation finished successfully."
 	fi
 
 fi
-exit 2
 
 
