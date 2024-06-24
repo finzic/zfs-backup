@@ -5,16 +5,18 @@ DEBUG=true				# set it to false for normal operation
 
 SOURCE_BASE=/mnt/raid
 SOURCE_ZFS_POOL=zfspool
-SOURCE_DATASET=Common
-SOURCE_PATH=$SOURCE_BASE/$SOURCE_DATASET
+SOURCE_DATASET=Test
 
-DEST_ADDR=r4spi.local
-DEST_DATASET=Common
-#DEST_ZFS_POOL=testpool
-DEST_ZFS_POOL=backuppool
 #DEST_BASE=/mnt/test
 DEST_BASE=/mnt/storage
+#DEST_ZFS_POOL=testpool
+DEST_ZFS_POOL=testpool
+DEST_DATASET=Test
+DEST_ADDR=r4spi.local
 DEST_USERNAME=finzic
+
+## COMPUTED VARIABLES
+SOURCE_PATH=${SOURCE_BASE}/${SOURCE_DATASET}
 
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
@@ -125,41 +127,59 @@ if [ ${RES} -eq 0 ]; then
 		echo "Error setting ${DEST_ZFS_POOL}/${DEST_DATASET} as readonly"
 		exit ${ERR_SETTING_DEST_READONLY}   
 	fi
-
 else 
-	echo "The dataset '${SOURCE_DATASET} is already present in the backup system -> performing new snapshot and transfer."
-	echo "Finding modified files and calculating checksums..."
-	if [ -f /tmp/md5-$DEST_DATASET.txt ]; then 
-		echo "Removing old md5-$DEST_DATASET.txt file... "
-		rm /tmp/md5-$DEST_DATASET.txt
-	else 
-		echo "No previous md5-$DEST_DATASET.txt file to remove, let's proceed."
-	fi
+	echo "The dataset \"${SOURCE_DATASET}\" is already present in the backup system -> a new snapshot will be created and incrementally transmitted."
 	## >> else normal case: 
-
 	#
 	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
 	## >> launch zfs snapshot send and receive at the backup machine; 
 	## >> check all transferred files' checksum with the ones previously calculated.  
 
 	cd ${SOURCE_BASE}
-	## >> rsync prepares the list of differences between server and backup machine;  
-	# rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
-	# NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders. 
-
+	# Removing temp files
 	if [ -f /tmp/changed-files.txt ]; then
 		echo "Removing old changed files file..."
 		rm /tmp/changed-files.txt
+	else
+		echo "No previous 'changed-files.txt' file to remove, let's proceed."
 	fi
+
+	if [ -f /tmp/md5-$DEST_DATASET.txt ]; then 
+		echo "Removing old md5-$DEST_DATASET.txt file... "
+		rm /tmp/md5-$DEST_DATASET.txt
+	else 
+		echo "No previous md5-$DEST_DATASET.txt file to remove, let's proceed."
+	fi
+
 	# 
 	#TODO - weak - need to compute the differences with last snapshot to actually know if any file has been changed. 
     # 
-	if ${DEBUG}; then
-		echo "==== rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} ..." 
-	fi 
-	rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
-
+	### OLD METHOD - using RSYNC. 
+	## >> rsync prepares the list of differences between server and backup machine;  
+	# rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+	# NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders.
+	# if ${DEBUG}; then
+	#	echo "==== rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} ..." 
+	# fi 
+	############################################################################################################################################################################### 
+	### rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
+    ############################################################################################################################################################################### 
+	### NEW METHOD - get differences from zfs diff on the server
+	LAST_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 1 | awk '{print $1}' )
+	if $DEBUG; then
+		echo "==== LAST SNAP = ${LAST_SNAP} "
+	fi
+	echo "Determining changed files..."
+	sudo zfs diff -F -H -h ${SNAP}  \
+		| grep -v /$'\t' \
+		| grep -v "^-" \
+		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
+		| sort > /tmp/changed-files.txt
 	# if changed-files.txt has no lines there are no changed files, so do not do anything - the backup operation stops. 
+
+	exit 1 
+
+	
 	CHANGES=$(wc -l < /tmp/changed-files.txt) 
 	if [ $CHANGES -eq 0 ] 
 	then
@@ -204,6 +224,9 @@ else
 
 		echo "first snapshot = $FIRST_SNAP"
 		echo "second snapshot = $SECOND_SNAP"
+		# Calculating size of the increment between first snapshot and second snapshot
+		  
+		# Sending out the snapshot increment 
 		echo "Sending snapshot"
 		if $DEBUG; then 
 			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
