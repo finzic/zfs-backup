@@ -170,7 +170,7 @@ else
 		echo "==== LAST SNAP = ${LAST_SNAP} "
 	fi
 	echo "Determining changed files..."
-	sudo zfs diff -F -H -h ${SNAP}  \
+	sudo zfs diff -F -H -h ${LAST_SNAP}  \
 		| grep -v /$'\t' \
 		| grep -v "^-" \
 		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
@@ -179,7 +179,7 @@ else
 
 	exit 1 
 
-	
+
 	CHANGES=$(wc -l < /tmp/changed-files.txt) 
 	if [ $CHANGES -eq 0 ] 
 	then
