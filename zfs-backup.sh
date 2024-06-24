@@ -7,8 +7,8 @@ SOURCE_BASE=/mnt/raid
 SOURCE_ZFS_POOL=zfspool
 SOURCE_DATASET=Test
 
-#DEST_BASE=/mnt/test
-DEST_BASE=/mnt/storage
+DEST_BASE=/mnt/test
+#DEST_BASE=/mnt/storage
 #DEST_ZFS_POOL=testpool
 DEST_ZFS_POOL=testpool
 DEST_DATASET=Test
