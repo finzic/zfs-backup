@@ -5,13 +5,15 @@ DEBUG=true				# set it to false for normal operation
 
 SOURCE_BASE=/mnt/raid
 SOURCE_ZFS_POOL=zfspool
-SOURCE_DATASET=Test
+SOURCE_DATASET=Common
 SOURCE_PATH=$SOURCE_BASE/$SOURCE_DATASET
 
 DEST_ADDR=r4spi.local
-DEST_DATASET=Test
-DEST_ZFS_POOL=testpool
-DEST_BASE=/mnt/test
+DEST_DATASET=Common
+#DEST_ZFS_POOL=testpool
+DEST_ZFS_POOL=backuppool
+#DEST_BASE=/mnt/test
+DEST_BASE=/mnt/storage
 DEST_USERNAME=finzic
 
 ## ERROR CODES
@@ -19,6 +21,7 @@ ERR_LESS_THAN_2_SNAPS=100
 ERR_FIRST_SNAPSHOT=101
 ERR_SETTING_DEST_READONLY=102
 ERR_BAD_MD5_CHECK=103
+ERR_ZFS_SEND_RECV=104
 
 ##############
 # Functions  #
@@ -206,6 +209,12 @@ else
 			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
 		fi
 		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+		RES=$?
+		if [ ! ${RES} -eq 0 ]; then
+			echo "Error in zfs send | zfs recv: ${RES}"
+			exit ${ERR_ZFS_SEND_RECV}
+		fi
+		echo "Result of zfs send | zfs recv is: ${RES}"
 
 		# echo "=== END - DEVELOPMENT STILL IN ACTION === " 
 	    # exit 1	
