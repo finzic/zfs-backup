@@ -199,31 +199,33 @@ else
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files and $DELETES deleted files." 
+		echo "Deleted files are:"
+		cat /tmp/deleted-file.txt
+		
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
 		cat /tmp/changed-files.txt | parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
 
 		if $DEBUG ; then 
-			echo ">>> md5sums of modified files: "
+			echo "==== md5sums of modified files: "
 			cat /tmp/md5-$DEST_DATASET.txt
 		fi	
-
-		exit 1
 
 		# Create snapshot in server's ZFS dataset
 		echo "Creating ZFS snapshot..."
 		# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 		SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-		echo ">>>>>sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
+		if $DEBUG ; then
+			echo "==== sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
+		fi 
 		sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
 
 		if $DEBUG ; then 
-			echo ">>> list of ZFS snapshots available: " 
+			echo "==== list of ZFS snapshots available: " 
 			zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}
 		fi
 
 		# check there are at least 2 snapshots: 
-
 		N_SNAPS=$(zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | grep ${SOURCE_DATASET} | tail -n 2 | wc -l)
 		if [ $N_SNAPS -lt 2 ]; then 
 			echo "There are less than 2 snapshots:" 
@@ -237,6 +239,16 @@ else
 		echo "first snapshot = $FIRST_SNAP"
 		echo "second snapshot = $SECOND_SNAP"
 		# Calculating size of the increment between first snapshot and second snapshot
+		echo "Calculating data transfer size approximation..."
+		sudo zfs diff -F -H -h ${FIRST_SNAP} ${SECOND_SNAP}  \
+			| grep -v /$'\t' \
+			| grep -v "^-" \
+			| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
+			| sort > /tmp/diff-files.txt 
+		####| tr '\n' '\0' | du -ch --files0-from=- | tail -1 | awk '{print $1}'
+
+		exit 1
+		
 		  
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
