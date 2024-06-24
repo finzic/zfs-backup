@@ -58,6 +58,20 @@ function parse_size() {
         esac
     fi
 }
+
+##
+function compute_size() {
+	sudo zfs diff -F -H -h $1 $2  \
+	| grep -v /$'\t' \
+	| grep -v "^-" \
+	| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
+	| sort \
+    | tr '\n' '\0' \
+	| du -ch --files0-from=- \
+	| tail -1 \
+	| awk '{print $1}'
+
+}
 ######################################################################################3
 
 ########
@@ -200,7 +214,7 @@ else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files and $DELETES deleted files." 
 		echo "Deleted files are:"
-		cat /tmp/deleted-file.txt
+		cat /tmp/deleted-files.txt
 		
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
@@ -240,15 +254,26 @@ else
 		echo "second snapshot = $SECOND_SNAP"
 		# Calculating size of the increment between first snapshot and second snapshot
 		echo "Calculating data transfer size approximation..."
-		sudo zfs diff -F -H -h ${FIRST_SNAP} ${SECOND_SNAP}  \
-			| grep -v /$'\t' \
-			| grep -v "^-" \
-			| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
-			| sort > /tmp/diff-files.txt 
-		####| tr '\n' '\0' | du -ch --files0-from=- | tail -1 | awk '{print $1}'
-
-		exit 1
+#		sudo zfs diff -F -H -h ${FIRST_SNAP} ${SECOND_SNAP}  \
+#			| grep -v /$'\t' \
+#			| grep -v "^-" \
+#			| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
+#			| sort \
+#		    | tr '\n' '\0' \
+#			| du -ch --files0-from=- \
+#			| tail -1 \
+#			| awk '{print $1}'
+		SIZE=$( compute_size ${FIRST_SNAP} ${SECOND_SNAP} )
+		if $DEBUG ; then
+			echo "==== Computed size is $SIZE" 
+		fi
+		PV_SIZE=$( parse_size ${SIZE} )
+		if $DEBUG ; then 
+			echo "==== Parsed size for PV is $PV_SIZE"
+		fi
 		
+		exit 1
+
 		  
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
