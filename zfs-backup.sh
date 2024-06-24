@@ -85,7 +85,7 @@ echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 
 if [ ${RES} -eq 0 ]; then 
-	echo "The dataset '${SOURCE_DATASET}' is not present in the backup system -> performing first snapshot and transfer."
+	echo "The dataset ${SOURCE_DATASET} is not present in the backup system -> performing first snapshot and transfer."
 	## Perform first snapshot
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
@@ -143,12 +143,17 @@ else
 	## >> rsync prepares the list of differences between server and backup machine;  
 	# rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
 	# NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders. 
-	echo "rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} " 
+
 	if [ -f /tmp/changed-files.txt ]; then
 		echo "Removing old changed files file..."
 		rm /tmp/changed-files.txt
 	fi
-
+	# 
+	#TODO - weak - need to compute the differences with last snapshot to actually know if any file has been changed. 
+    # 
+	if ${DEBUG}; then
+		echo "==== rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} ..." 
+	fi 
 	rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
 
 	# if changed-files.txt has no lines there are no changed files, so do not do anything - the backup operation stops. 

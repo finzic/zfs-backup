@@ -32,16 +32,37 @@ snap base :
     file0.txt # file that is never changed 
 second-snap
     file-2.txt
-    file-1.txt
 third-snap
     file-3.txt
-    modify file-2.txt
-    delete file-1.txt
+    modify file-2.txt    
 fourth-snap
     file-4.txt
     modify file-3.txt
-    modify file-2.txt
+    delete file-2.txt
 
 ------------------------------
+DELETING FIRST snapshot
+finzic@r4spi:~/src $ zfs list -t snapshot testpool/Test
+NAME                                USED  AVAIL  REFER  MOUNTPOINT
+testpool/Test@2024.06.20-15.24.40   107K      -  5.32G  -
+testpool/Test@2024.06.24-01.37.17   108K      -  5.32G  -
+testpool/Test@2024.06.24-01.55.00   109K      -  5.41G  -
+testpool/Test@2024.06.24-02.10.26     0B      -  5.41G  -
+
+da qui cancello il primo snapshot a mano: 
+$ sudo zfs destroy testpool/Test@2024.06.20-15.24.40
+cannot destroy snapshot testpool/Test@2024.06.20-15.24.40: dataset is busy
+
+finzic@r4spi:~/src $ sudo systemctl stop nmbd.service
+finzic@r4spi:~/src $ sudo systemctl stop smbd.service
+finzic@r4spi:~/src $ sudo zfs destroy testpool/Test@2024.06.20-15.24.40
+<OK>
+Risultato: 
+cancellato il primo snapshot, riesco comunque a vedere file-0.txt che e' stato creato all'inizio e mai modificato. 
+---------
+Ora da capire cosa succede se voglio fare subito un nuovo snapshot modificando dati nel server: 
+IT WORKS . No need to rollback to the last snapshot. 
+This means we can reclaim space when needed by removing snapshots if this is of any worth. 
+
 
 
