@@ -176,7 +176,12 @@ else
 		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
 		| sort > /tmp/changed-files.txt
 	# if changed-files.txt has no lines there are no changed files, so do not do anything - the backup operation stops. 
-
+	echo "Determining deleted files..." 
+	sudo zfs diff -F -H -h ${LAST_SNAP}  \
+		| grep -v /$'\t' \
+		| grep "^-" \
+		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
+		| sort > /tmp/deleted-files.txt
 	exit 1 
 
 
