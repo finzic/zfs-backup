@@ -28,6 +28,8 @@ ERR_ZFS_SEND_RECV=104
 ##############
 # Functions  #
 ##############
+
+## parse_size - provide a simple modification of the size passed so that it will be integer multiple of K,M,G,T for pv to correctly set max size and progress bar. 
 function parse_size() {
     size=$1
     suffix="${size: -1}"
@@ -59,7 +61,7 @@ function parse_size() {
     fi
 }
 
-##
+## compute_size - calculates approximate size of files being transferred as difference between snapshots
 function compute_size() {
 	sudo zfs diff -F -H -h $1 $2  \
 	| grep -v /$'\t' \
@@ -250,19 +252,12 @@ else
 		FIRST_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
 		SECOND_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 1 | awk '{print $1}' )
 
-		echo "first snapshot = $FIRST_SNAP"
-		echo "second snapshot = $SECOND_SNAP"
+		if $DEBUG ; then 
+			echo "==== first snapshot = $FIRST_SNAP"
+			echo "==== second snapshot = $SECOND_SNAP"
+		fi
 		# Calculating size of the increment between first snapshot and second snapshot
 		echo "Calculating data transfer size approximation..."
-#		sudo zfs diff -F -H -h ${FIRST_SNAP} ${SECOND_SNAP}  \
-#			| grep -v /$'\t' \
-#			| grep -v "^-" \
-#			| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
-#			| sort \
-#		    | tr '\n' '\0' \
-#			| du -ch --files0-from=- \
-#			| tail -1 \
-#			| awk '{print $1}'
 		SIZE=$( compute_size ${FIRST_SNAP} ${SECOND_SNAP} )
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
@@ -271,26 +266,25 @@ else
 		if $DEBUG ; then 
 			echo "==== Parsed size for PV is $PV_SIZE"
 		fi
-		
-		exit 1
-
 		  
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
 		if $DEBUG; then 
-			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
+			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar -s ${PV_SIZE} | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
 		fi
-		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+		
+		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} \
+			| pv -ptebar -s ${PV_SIZE} \
+			| ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+		
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
 			echo "Error in zfs send | zfs recv: ${RES}"
 			exit ${ERR_ZFS_SEND_RECV}
 		fi
-		echo "Result of zfs send | zfs recv is: ${RES}"
-
-		# echo "=== END - DEVELOPMENT STILL IN ACTION === " 
-	    # exit 1	
-		# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
+		if $DEBUG ; then 
+			echo "Result of zfs send | zfs recv is: ${RES}"
+		fi
 
 		THIS=$(pwd)
 		cd ${SOURCE_PATH}

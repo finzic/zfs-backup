@@ -85,6 +85,8 @@ old method with rsync
 
 # remove quotes from file so that parallel can run and pass paths to md5sum correctly 
 		sed -i 's/\"//g' /tmp/changed-files.txt
+# rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
+
 -------------------------------------
 
 
