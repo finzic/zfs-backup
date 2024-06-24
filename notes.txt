@@ -63,6 +63,29 @@ cancellato il primo snapshot, riesco comunque a vedere file-0.txt che e' stato c
 Ora da capire cosa succede se voglio fare subito un nuovo snapshot modificando dati nel server: 
 IT WORKS . No need to rollback to the last snapshot. 
 This means we can reclaim space when needed by removing snapshots if this is of any worth. 
+-----------------------------------------------------------------------------------------------------
+Calcolo taglia invio incrementale: 
+sudo zfs diff -F -H -h zfspool/Music@2024.06.06-02.50.15  zfspool/Music@2024.06.24-02.50.28  | grep -v /$'\t' | grep -v "^-" | sort | awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  | tr '\n' '\0' | du -ch --files0-from=- | tail -1 | awk '{print $1}'
+
+Questa gestisce anche i file con spazi nel filename, comunissimi negli MP3;
+Il -h in zfs diff serve per non stampare "\0040" al posto di <spazio>
+Il programma AWK serve per stampare tutti i 'campi' meno i primi 2.
+Il sort non serve ma fa l'output piu' grazioso se lo vedi a schermo 
+grep -v "^-" -> toglie le righe dei file che sono presenti nel primo snapshot e cancellati nel secondo. 
+grep -v /$'\t' -> toglie le righe che rappresentano directory
+forse vale comunque la pena di non usare solo pipe per non dover aspettare senza output
+Il tr '\n' '\0' serve perche' il du successivo si aspetta una lista di path zero-terminated... 
+
+zfspool/Foto@2024.06.16-16.33.39  zfspool/Foto@2024.06.24-02.40.59 
+---------------------------------
+old method with rsync
+############################################################################################################################################################################### 
+	### rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
+    ############################################################################################################################################################################### 
+
+# remove quotes from file so that parallel can run and pass paths to md5sum correctly 
+		sed -i 's/\"//g' /tmp/changed-files.txt
+-------------------------------------
 
 
 

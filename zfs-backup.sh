@@ -144,6 +144,14 @@ else
 		echo "No previous 'changed-files.txt' file to remove, let's proceed."
 	fi
 
+	if [ -f /tmp/deleted-files.txt ]; then
+		echo "Removing old deleted files file..."
+		rm /tmp/deleted-files.txt
+	else
+		echo "No previous 'changed-files.txt' file to remove, let's proceed."
+	fi
+
+
 	if [ -f /tmp/md5-$DEST_DATASET.txt ]; then 
 		echo "Removing old md5-$DEST_DATASET.txt file... "
 		rm /tmp/md5-$DEST_DATASET.txt
@@ -182,26 +190,25 @@ else
 		| grep "^-" \
 		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
 		| sort > /tmp/deleted-files.txt
-	exit 1 
-
 
 	CHANGES=$(wc -l < /tmp/changed-files.txt) 
-	if [ $CHANGES -eq 0 ] 
+	DELETES=$(wc -l < /tmp/deleted-files.txt)
+	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] 
 	then
-		echo "No changed files in $SOURCE_PATH - nothing to backup - operation completed." 
+		echo "No changed or deleted files in $SOURCE_PATH - nothing to backup - operation completed." 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
-		echo "There are $CHANGES changed files - calculating md5sums parallelizing 4x..."
-		# remove quotes from file so that parallel can run and pass paths to md5sum correctly 
-		sed -i 's/\"//g' /tmp/changed-files.txt
-
+		echo "There are $CHANGES changed files and $DELETES deleted files." 
 		## calculating md5sum in parallel with eta display: 
+		echo "Calculating md5sums parallelizing 4x..."
 		cat /tmp/changed-files.txt | parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
 
 		if $DEBUG ; then 
 			echo ">>> md5sums of modified files: "
 			cat /tmp/md5-$DEST_DATASET.txt
 		fi	
+
+		exit 1
 
 		# Create snapshot in server's ZFS dataset
 		echo "Creating ZFS snapshot..."
