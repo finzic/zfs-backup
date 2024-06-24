@@ -18,6 +18,7 @@ DEST_USERNAME=finzic
 ERR_LESS_THAN_2_SNAPS=100
 ERR_FIRST_SNAPSHOT=101
 ERR_SETTING_DEST_READONLY=102
+ERR_BAD_MD5_CHECK=103
 
 ##############
 # Functions  #
@@ -207,17 +208,16 @@ else
 
 		THIS=$(pwd)
 		cd ${SOURCE_PATH}
-		echo "\nSending md5sums of modified files to ${DEST_ADDR} ..."
+		echo "Sending md5sums of modified files to ${DEST_ADDR} ..."
 		scp /tmp/md5-${DEST_DATASET}.txt ${DEST_USERNAME}@${DEST_ADDR}:/tmp/
 
 		cat << EOF > /tmp/check-md5sums.sh
 #!/bin/bash
-cd ${DEST_DATASET}
+cd ${DEST_BASE}
 md5sum -c /tmp/md5-${DEST_DATASET}.txt
 EOF
 
-		ssh ${DEST_USERNAME}@${DEST_ADDR}
-"bash -s" < /tmp/check-md5sums.sh
+		ssh ${DEST_USERNAME}@${DEST_ADDR} "bash -s" < /tmp/check-md5sums.sh
 		EXIT_CODE=$?
 		echo "result = $EXIT_CODE "
 
@@ -226,6 +226,7 @@ EOF
 			echo "remote md5sum is correct."
 		else
 		    echo "remote md5 check gave error code $EXIT_CODE"
+			exit ${ERR_BAD_MD5_CHECK}
 		fi
 		cd $THIS
 		echo "Backup operation finished successfully."
