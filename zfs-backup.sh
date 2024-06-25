@@ -67,7 +67,7 @@ function compute_size() {
 	| grep -v /$'\t' \
 	| grep -v "^-" \
 	| grep -v "^R" \
-	| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}'  \
+	| awk 'BEGIN { FS = "\t" } ; { print $3 }'  \
 	| sort \
     | tr '\n' '\0' \
 	| du -ch --files0-from=- \
@@ -194,12 +194,18 @@ else
 	if $DEBUG; then
 		echo "==== LAST SNAP = ${LAST_SNAP} "
 	fi
+
+	## changed files are added or modified; 
+	## moved files are renamed or moved to a different path; 
+	## deleted are... well, deleted. 
+	## BUG there is a problem with the awk expression with files that have multiple spaces in their name. 
+
 	echo "Determining changed files..."
 	sudo zfs diff -F -H -h ${LAST_SNAP}  \
 		| grep -v /$'\t' \
 		| grep -v "^-" \
 		| grep -v "^R" \
-		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
+		| awk 'BEGIN { FS = "\t" } ; { print $3 }' \
 		| sort > /tmp/changed-files.txt
 	
 	echo "Determining moved files..."
@@ -212,7 +218,7 @@ else
 	sudo zfs diff -F -H -h ${LAST_SNAP}  \
 		| grep -v /$'\t' \
 		| grep "^-" \
-		| awk '{for (i=3; i <= NF-1; i++) printf("%s ", $i); printf ("%s",$NF); print ""}' \
+		| awk 'BEGIN { FS = "\t" } ; { print $3 }' \
 		| sort > /tmp/deleted-files.txt
 
 	CHANGES=$(wc -l < /tmp/changed-files.txt) 
