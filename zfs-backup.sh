@@ -220,7 +220,10 @@ else
 		
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
-		cat /tmp/changed-files.txt | parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt
+		cat /tmp/changed-files.txt \
+			| parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt 
+		echo "Fixing paths in md5sums file..."
+		sed -i "s|${SOURCE_BASE}/||" /tmp/md5-${DEST_DATASET}.txt
 
 		if $DEBUG ; then 
 			echo "==== md5sums of modified files: "
