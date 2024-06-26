@@ -3,27 +3,25 @@
 ### VARIABLES. 
 DEBUG=true				# set it to false for normal operation
 
-SOURCE_BASE=/mnt/raid
-SOURCE_ZFS_POOL=zfspool
-SOURCE_DATASET=Test
+#SRC_BASE=/mnt/raid
+#SRC_POOL=zfspool
+#SRC_DATASET=Test
 
-DEST_BASE=/mnt/test
-#DEST_BASE=/mnt/storage
-#DEST_ZFS_POOL=testpool
-DEST_ZFS_POOL=testpool
-DEST_DATASET=Test
-DEST_ADDR=r4spi.local
-DEST_USERNAME=finzic
-
-## COMPUTED VARIABLES
-SOURCE_PATH=${SOURCE_BASE}/${SOURCE_DATASET}
+#DST_BASE=/mnt/test
+#DST_BASE=/mnt/storage
+#DST_POOL=testpool
+#DST_POOL=testpool
+#DST_DATASET=Test
+#DST_ADDR=r4spi.local
+#DST_USERNAME=finzic
 
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
 ERR_FIRST_SNAPSHOT=101
-ERR_SETTING_DEST_READONLY=102
+ERR_SETTING_DST_READONLY=102
 ERR_BAD_MD5_CHECK=103
 ERR_ZFS_SEND_RECV=104
+
 
 ##############
 # Functions  #
@@ -81,36 +79,68 @@ function compute_size() {
 # Main #
 ########
 
-## First thing is to check if this is the first backup and first snapshot or not. 
-
-
 echo "##################################################"
-echo "### backup script for ZFS pool on MORLA server ###"
+echo "### backup script for ZFS pool on $(hostname) server ###"
 echo "##################################################"
 echo ""
-echo "source base folder      = ${SOURCE_BASE}"
-echo "source dataset          = ${SOURCE_DATASET}"
-echo "destination address     = ${DEST_ADDR}"
-echo "destination base folder = ${DEST_BASE}"
+
+# checking input
+if [ ! $# -eq 1 ]; then 
+	echo "No input data file name - exiting" 
+	exit 1
+fi
+
+DATA_FILE=$1
+source $1
+if $DEBUG ; then 
+	echo "==== SRC_POOL     = ${SRC_POOL}"
+	echo "==== SRC_DATASET  = ${SRC_DATASET}"
+	echo "==== DST_POOL     = ${DST_POOL}"
+	echo "==== DST_DATASET 	= ${DST_DATASET}"
+	echo "==== DST_USETNAME = ${DST_USERNAME}"
+	echo "==== DST_ADDR     = ${DST_ADDR}"
+fi
+
+## COMPUTED VARIABLES
+SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
+SRC_BASE=${SB%/*}
+SRC_PATH=${SRC_BASE}/${SRC_DATASET}
+
+#DB=$(zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET})
+DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
+DST_BASE=${DB%/*}
+
+echo "source base folder      = ${SRC_BASE}"
+echo "source pool             = ${SRC_POOL}"
+echo "source dataset          = ${SRC_DATASET}"
+echo "destination address     = ${DST_ADDR}"
+echo "destination username    = ${DST_USERNAME}"
+echo "destination base folder = ${DST_BASE}"
+echo "destination pool        = ${DST_POOL}"
+echo "destination dataset     = ${DST_DATASET}"
+echo "======================================================"
+
+exit 200
+
 # calculating diff md5sums
 
 ## TODO the corner case is the initial case: 
-## first snapshot ever: need to check if the dataset is available at the destination, and if there are no snapshots present at the source.
+## first snapshot ever: need to check if the dataset is available at the DSTination, and if there are no snapshots present at the SRC.
 ## In this case, 
 ## 1) perform the first snapshot;  
 ## 2) transfer the dataset with the first type of command 
 ## sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s <size> | ssh finzic@r4spi.local  sudo zfs recv backup
 
 ## Checking if the dataset is already present at the backup server: 
-OUTPUT=$(ssh ${DEST_USERNAME}@${DEST_ADDR} zfs list -t snapshot ${DEST_ZFS_POOL}/${DEST_DATASET} 2>&1 ) 
+OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 ) 
 echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 
 if [ ${RES} -eq 0 ]; then 
-	echo "The dataset ${SOURCE_DATASET} is not present in the backup system -> performing first snapshot and transfer."
+	echo "The dataset ${SRC_DATASET} is not present in the backup system -> performing first snapshot and transfer."
 	## Perform first snapshot
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-	sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
+	sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 	## retrieve its tag 
 	OUTPUT=$(zfs list -t snapshot zfspool/Test | tail -n 1)
 	SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
@@ -125,7 +155,7 @@ if [ ${RES} -eq 0 ]; then
 	## send the snapshot to the backup server
 	##sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
     echo "Sending first snapshot to backup system..." 
-	sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+	sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -136,23 +166,23 @@ if [ ${RES} -eq 0 ]; then
 
 	# Setting the dataset as readonly is necessary for subsequent snapshot sending.
 	echo -n "Setting dataset as readonly..." 
-	ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs set readonly=on ${DEST_ZFS_POOL}/${DEST_DATASET}
+	ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs set readonly=on ${DST_POOL}/${DST_DATASET}
 	RES=$?
 	if [ ${RES} -eq 0 ]; then
 		echo "... OK"
 	else
-		echo "Error setting ${DEST_ZFS_POOL}/${DEST_DATASET} as readonly"
-		exit ${ERR_SETTING_DEST_READONLY}   
+		echo "Error setting ${DST_POOL}/${DST_DATASET} as readonly"
+		exit ${ERR_SETTING_DST_READONLY}   
 	fi
 else 
-	echo "The dataset \"${SOURCE_DATASET}\" is already present in the backup system -> a new snapshot will be created and incrementally transmitted."
+	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system -> a new snapshot will be created and incrementally transmitted."
 	## >> else normal case: 
 	#
 	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
 	## >> launch zfs snapshot send and receive at the backup machine; 
 	## >> check all transferred files' checksum with the ones previously calculated.  
 
-	cd ${SOURCE_BASE}
+	cd ${SRC_BASE}
 	# Removing temp files
 	if [ -f /tmp/changed-files.txt ]; then
 		echo "Removing old changed files file..."
@@ -169,11 +199,11 @@ else
 	fi
 
 
-	if [ -f /tmp/md5-$DEST_DATASET.txt ]; then 
-		echo "Removing old md5-$DEST_DATASET.txt file... "
-		rm /tmp/md5-$DEST_DATASET.txt
+	if [ -f /tmp/md5-$DST_DATASET.txt ]; then 
+		echo "Removing old md5-$DST_DATASET.txt file... "
+		rm /tmp/md5-$DST_DATASET.txt
 	else 
-		echo "No previous md5-$DEST_DATASET.txt file to remove, let's proceed."
+		echo "No previous md5-$DST_DATASET.txt file to remove, let's proceed."
 	fi
 
 	# 
@@ -181,16 +211,16 @@ else
     # 
 	### OLD METHOD - using RSYNC. 
 	## >> rsync prepares the list of differences between server and backup machine;  
-	# rsync -nia --out-format="%i \"%f\"" $SOURCE_DATASET bu@$DEST_ADDR:/home/bu/$DEST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
-	# NOTE: the trailing '/' after ${SOURCE_DATASET} is FUNDAMENTAL to compare the right folders.
+	# rsync -nia --out-format="%i \"%f\"" $SRC_DATASET bu@$DST_ADDR:/home/bu/$DST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+	# NOTE: the trailing '/' after ${SRC_DATASET} is FUNDAMENTAL to compare the right folders.
 	# if ${DEBUG}; then
-	#	echo "==== rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} ..." 
+	#	echo "==== rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} ..." 
 	# fi 
 	############################################################################################################################################################################### 
-	### rsync -nia --out-format="%i \"%f\"" ${SOURCE_DATASET}/ ${DEST_USERNAME}@${DEST_ADDR}:${DEST_BASE}/${DEST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
+	### rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
     ############################################################################################################################################################################### 
 	### NEW METHOD - get differences from zfs diff on the server
-	LAST_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 1 | awk '{print $1}' )
+	LAST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
 	if $DEBUG; then
 		echo "==== LAST SNAP = ${LAST_SNAP} "
 	fi
@@ -226,7 +256,7 @@ else
 	MOVED=$(wc -l < /tmp/moved-files.txt)
 	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ]
 	then
-		echo "No changed or deleted files in $SOURCE_PATH - nothing to backup - operation completed." 
+		echo "No changed or deleted files in $SRC_PATH - nothing to backup - operation completed." 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files and $DELETES deleted files." 
@@ -241,13 +271,13 @@ else
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
 		cat /tmp/changed-files.txt \
-			| parallel -j+0 --eta md5sum {} > /tmp/md5-${DEST_DATASET}.txt 
+			| parallel -j+0 --eta md5sum {} > /tmp/md5-${DST_DATASET}.txt 
 		echo "Fixing paths in md5sums file..."
-		sed -i "s|${SOURCE_BASE}/||" /tmp/md5-${DEST_DATASET}.txt
+		sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
 
 		if $DEBUG ; then 
 			echo "==== md5sums of modified files: "
-			cat /tmp/md5-$DEST_DATASET.txt
+			cat /tmp/md5-$DST_DATASET.txt
 		fi	
 
 		# Create snapshot in server's ZFS dataset
@@ -255,25 +285,25 @@ else
 		# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
 		SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 		if $DEBUG ; then
-			echo "==== sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}"
+			echo "==== sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}"
 		fi 
-		sudo zfs snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}@${SNAP_TIMESTAMP}
+		sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 
 		if $DEBUG ; then 
 			echo "==== list of ZFS snapshots available: " 
-			zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET}
+			zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET}
 		fi
 
 		# check there are at least 2 snapshots: 
-		N_SNAPS=$(zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | grep ${SOURCE_DATASET} | tail -n 2 | wc -l)
+		N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
 		if [ $N_SNAPS -lt 2 ]; then 
 			echo "There are less than 2 snapshots:" 
-			zfs list -t snapshot ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} 
+			zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} 
 			exit $ERR_LESS_THAN_2_SNAPS
         fi
 
-		FIRST_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
-		SECOND_SNAP=$(zfs list -t snapshot  ${SOURCE_ZFS_POOL}/${SOURCE_DATASET} | tail -n 1 | awk '{print $1}' )
+		FIRST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
+		SECOND_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
 
 		if $DEBUG ; then 
 			echo "==== first snapshot = $FIRST_SNAP"
@@ -293,12 +323,12 @@ else
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
 		if $DEBUG; then 
-			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar -s ${PV_SIZE} | ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}"
+			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
 		fi
 		
 		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} \
 			| pv -ptebar -s ${PV_SIZE} \
-			| ssh ${DEST_USERNAME}@${DEST_ADDR} sudo zfs recv ${DEST_ZFS_POOL}/${DEST_DATASET}
+			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
 		
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
@@ -310,17 +340,17 @@ else
 		fi
 
 		THIS=$(pwd)
-		cd ${SOURCE_PATH}
-		echo "Sending md5sums of modified files to ${DEST_ADDR} ..."
-		scp /tmp/md5-${DEST_DATASET}.txt ${DEST_USERNAME}@${DEST_ADDR}:/tmp/
+		cd ${SRC_PATH}
+		echo "Sending md5sums of modified files to ${DST_ADDR} ..."
+		scp /tmp/md5-${DST_DATASET}.txt ${DST_USERNAME}@${DST_ADDR}:/tmp/
 
 		cat << EOF > /tmp/check-md5sums.sh
 #!/bin/bash
-cd ${DEST_BASE}
-md5sum -c /tmp/md5-${DEST_DATASET}.txt
+cd ${DST_BASE}
+md5sum -c /tmp/md5-${DST_DATASET}.txt
 EOF
 
-		ssh ${DEST_USERNAME}@${DEST_ADDR} "bash -s" < /tmp/check-md5sums.sh
+		ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh
 		EXIT_CODE=$?
 		echo "result = $EXIT_CODE "
 

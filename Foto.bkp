@@ -1,0 +1,8 @@
+SRC_POOL=zfspool
+SRC_DATASET=Foto
+
+DST_POOL=backuppol
+DST_DATASET=Foto
+
+DST_USERNAME=finzic
+DST_ADDR=r4spi.local

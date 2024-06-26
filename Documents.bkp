@@ -1,0 +1,8 @@
+SRC_POOL=zfspool
+SRC_DATASET=Documents
+
+DST_POOL=backuppol
+DST_DATASET=Documents
+
+DST_USERNAME=finzic
+DST_ADDR=r4spi.local

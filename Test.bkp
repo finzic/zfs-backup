@@ -1,0 +1,8 @@
+SRC_POOL=zfspool
+SRC_DATASET=Test
+
+DST_POOL=testpool
+DST_DATASET=Test
+
+DST_USERNAME=finzic
+DST_ADDR=r4spi.local
