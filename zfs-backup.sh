@@ -21,6 +21,7 @@ ERR_FIRST_SNAPSHOT=101
 ERR_SETTING_DST_READONLY=102
 ERR_BAD_MD5_CHECK=103
 ERR_ZFS_SEND_RECV=104
+ERR_DEST_MOUNTPOINT_RETRIEVAL=105
 
 
 ##############
@@ -89,7 +90,7 @@ if [ ! $# -eq 1 ]; then
 	echo "No input data file name - exiting" 
 	exit 1
 fi
-
+# reading data file with variables that configure the snapshot operation
 DATA_FILE=$1
 source $1.bkp
 if $DEBUG ; then 
@@ -106,9 +107,19 @@ SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
 SRC_PATH=${SRC_BASE}/${SRC_DATASET}
 
-#DB=$(zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET})
+# Retrieving mountpoint for remote backup system dataset
 DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
+RES=$?
+if [ ! ${RES} -eq 0 ]; then 
+	echo "Error retrieving destination dataset mountpoint: ${RES}"
+	echo "Exiting"
+	exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
+fi 
+
 DST_BASE=${DB%/*}
+
+
+# display of initial data: 
 
 echo "source base folder      = ${SRC_BASE}"
 echo "source pool             = ${SRC_POOL}"
@@ -120,6 +131,7 @@ echo "destination pool        = ${DST_POOL}"
 echo "destination dataset     = ${DST_DATASET}"
 echo "======================================================"
 
+echo "DEVELOPMENT EXIT" 
 exit 200
 
 # calculating diff md5sums
