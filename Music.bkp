@@ -1,7 +1,7 @@
 SRC_POOL=zfspool
 SRC_DATASET=Music
 
-DST_POOL=backuppol
+DST_POOL=backuppool
 DST_DATASET=Music
 
 DST_USERNAME=finzic

@@ -1,7 +1,7 @@
 SRC_POOL=zfspool
 SRC_DATASET=Documents
 
-DST_POOL=backuppol
+DST_POOL=backuppool
 DST_DATASET=Documents
 
 DST_USERNAME=finzic
