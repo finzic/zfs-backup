@@ -3,18 +3,6 @@
 ### VARIABLES. 
 DEBUG=true				# set it to false for normal operation
 
-#SRC_BASE=/mnt/raid
-#SRC_POOL=zfspool
-#SRC_DATASET=Test
-
-#DST_BASE=/mnt/test
-#DST_BASE=/mnt/storage
-#DST_POOL=testpool
-#DST_POOL=testpool
-#DST_DATASET=Test
-#DST_ADDR=r4spi.local
-#DST_USERNAME=finzic
-
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
 ERR_FIRST_SNAPSHOT=101
@@ -22,12 +10,27 @@ ERR_SETTING_DST_READONLY=102
 ERR_BAD_MD5_CHECK=103
 ERR_ZFS_SEND_RECV=104
 ERR_DEST_MOUNTPOINT_RETRIEVAL=105
+ERR_BAD_POOL_DESCR=106
 
 
 ##############
 # Functions  #
 ##############
-
+## usage - description of usate
+function usage() {
+	echo "zfs-backup.sh - a tool for backing up datasets on a remote server"
+	echo "========="
+	echo "usage : zfs.backup.sh <pool_descriptor>"
+	echo ""
+	echo "Pool descriptor file is a text file whose name shall end in '.bkp'. "
+	echo "It contains the following shell variables: "
+	echo "SRC_POOL=<source ZFS pool name> 
+SRC_DATASET=<source dataset name>
+DST_POOL=<destination ZFS pool name>
+DST_DATASET=<destination ZFS dataset name> 
+DST_USERNAME=<destination username>
+DST_ADDR=<destination address>"
+}
 ## parse_size - provide a simple modification of the size passed so that it will be integer multiple of K,M,G,T for pv to correctly set max size and progress bar. 
 function parse_size() {
     size=$1
@@ -87,7 +90,7 @@ echo ""
 
 # checking input
 if [ ! $# -eq 1 ]; then 
-	echo "No input data file name - exiting" 
+	usage 
 	exit 1
 fi
 # reading data file with variables that configure the snapshot operation
@@ -101,6 +104,40 @@ if $DEBUG ; then
 	echo "==== DST_USERNAME = ${DST_USERNAME}"
 	echo "==== DST_ADDR     = ${DST_ADDR}"
 fi
+
+## checking for sourced variables 
+
+if [ x${SRC_POOL} = x ]; then 
+	echo "ERROR: No SRC_POOL variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+if [ x${SRC_DATASET} = x ]; then 
+	echo "ERROR: No SRC_DATASET variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+if [ x${DST_POOL} = x ]; then 
+	echo "ERROR: No DST_POOL variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+if [ x${DST_DATASET} = x ]; then 
+	echo "ERROR: No DST_DATASET variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+if [ x${DST_USERNAME} = x ]; then 
+	echo "ERROR: No DST_USERNAME variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+if [ x${DST_ADDR} = x ]; then 
+	echo "ERROR: No DST_ADDR variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+
+
 
 ## COMPUTED VARIABLES
 SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
@@ -131,8 +168,6 @@ echo "destination pool        = ${DST_POOL}"
 echo "destination dataset     = ${DST_DATASET}"
 echo "======================================================"
 
-echo "DEVELOPMENT EXIT" 
-exit 200
 
 # calculating diff md5sums
 
