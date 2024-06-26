@@ -137,8 +137,6 @@ if [ x${DST_ADDR} = x ]; then
 	exit ${ERR_BAD_POOL_DESCR}
 fi 
 
-
-
 ## COMPUTED VARIABLES
 SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
@@ -155,7 +153,6 @@ fi
 
 DST_BASE=${DB%/*}
 
-
 # display of initial data: 
 
 echo "source base folder      = ${SRC_BASE}"
@@ -168,21 +165,15 @@ echo "destination pool        = ${DST_POOL}"
 echo "destination dataset     = ${DST_DATASET}"
 echo "======================================================"
 
-
-# calculating diff md5sums
-
-## TODO the corner case is the initial case: 
 ## first snapshot ever: need to check if the dataset is available at the DSTination, and if there are no snapshots present at the SRC.
 ## In this case, 
 ## 1) perform the first snapshot;  
 ## 2) transfer the dataset with the first type of command 
-## sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s <size> | ssh finzic@r4spi.local  sudo zfs recv backup
 
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 ) 
 echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
-
 if [ ${RES} -eq 0 ]; then 
 	echo "The dataset ${SRC_DATASET} is not present in the backup system -> performing first snapshot and transfer."
 	## Perform first snapshot
@@ -245,7 +236,6 @@ else
 		echo "No previous 'changed-files.txt' file to remove, let's proceed."
 	fi
 
-
 	if [ -f /tmp/md5-$DST_DATASET.txt ]; then 
 		echo "Removing old md5-$DST_DATASET.txt file... "
 		rm /tmp/md5-$DST_DATASET.txt
@@ -253,20 +243,7 @@ else
 		echo "No previous md5-$DST_DATASET.txt file to remove, let's proceed."
 	fi
 
-	# 
-	#TODO - weak - need to compute the differences with last snapshot to actually know if any file has been changed. 
-    # 
-	### OLD METHOD - using RSYNC. 
-	## >> rsync prepares the list of differences between server and backup machine;  
-	# rsync -nia --out-format="%i \"%f\"" $SRC_DATASET bu@$DST_ADDR:/home/bu/$DST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
-	# NOTE: the trailing '/' after ${SRC_DATASET} is FUNDAMENTAL to compare the right folders.
-	# if ${DEBUG}; then
-	#	echo "==== rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} ..." 
-	# fi 
-	############################################################################################################################################################################### 
-	### rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
-    ############################################################################################################################################################################### 
-	### NEW METHOD - get differences from zfs diff on the server
+	### get differences from zfs diff on the server
 	LAST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
 	if $DEBUG; then
 		echo "==== LAST SNAP = ${LAST_SNAP} "
@@ -275,7 +252,6 @@ else
 	## changed files are added or modified; 
 	## moved files are renamed or moved to a different path; 
 	## deleted are... well, deleted. 
-	## BUG there is a problem with the awk expression with files that have multiple spaces in their name. 
 
 	echo "Determining changed files..."
 	sudo zfs diff -F -H -h ${LAST_SNAP}  \
@@ -413,5 +389,3 @@ EOF
 	fi
 
 fi
-
-

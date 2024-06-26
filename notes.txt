@@ -87,7 +87,24 @@ old method with rsync
 		sed -i 's/\"//g' /tmp/changed-files.txt
 # rsync -avzpH --partial --delete -P --progress $SOURCE_PATH bu@$DEST_ADDR:/home/bu/$DEST_DATASET
 
+	# 
+	#TODO - weak - need to compute the differences with last snapshot to actually know if any file has been changed. 
+    # 
+	### OLD METHOD - using RSYNC. 
+	## >> rsync prepares the list of differences between server and backup machine;  
+	# rsync -nia --out-format="%i \"%f\"" $SRC_DATASET bu@$DST_ADDR:/home/bu/$DST_DATASET | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt
+	# NOTE: the trailing '/' after ${SRC_DATASET} is FUNDAMENTAL to compare the right folders.
+	# if ${DEBUG}; then
+	#	echo "==== rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} ..." 
+	# fi 
+	############################################################################################################################################################################### 
+	### rsync -nia --out-format="%i \"%f\"" ${SRC_DATASET}/ ${DST_USERNAME}@${DST_ADDR}:${DST_BASE}/${DST_DATASET} | egrep '<' | cut -d' ' -f2- > /tmp/changed-files.txt ###
+    ############################################################################################################################################################################### 
+
+
 -------------------------------------
+ZFS information resource: 
+https://www.illumos.org/books/zfs-admin/snapshots.html
 
 
 
