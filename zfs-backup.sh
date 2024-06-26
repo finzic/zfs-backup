@@ -91,7 +91,7 @@ if [ ! $# -eq 1 ]; then
 fi
 
 DATA_FILE=$1
-source $1
+source $1.bkp
 if $DEBUG ; then 
 	echo "==== SRC_POOL     = ${SRC_POOL}"
 	echo "==== SRC_DATASET  = ${SRC_DATASET}"
