@@ -97,8 +97,8 @@ if $DEBUG ; then
 	echo "==== SRC_POOL     = ${SRC_POOL}"
 	echo "==== SRC_DATASET  = ${SRC_DATASET}"
 	echo "==== DST_POOL     = ${DST_POOL}"
-	echo "==== DST_DATASET 	= ${DST_DATASET}"
-	echo "==== DST_USETNAME = ${DST_USERNAME}"
+	echo "==== DST_DATASET  = ${DST_DATASET}"
+	echo "==== DST_USERNAME = ${DST_USERNAME}"
 	echo "==== DST_ADDR     = ${DST_ADDR}"
 fi
 
