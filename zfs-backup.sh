@@ -64,8 +64,10 @@ function parse_size() {
 }
 
 ## compute_size - calculates approximate size of files being transferred as difference between snapshots
+## $1 shall be the path of a file containing result of zfs diff -F -H -h ${LAST_SNAP}
 function compute_size() {
-	sudo zfs diff -F -H -h $1 $2  \
+	# sudo zfs diff -F -H -h $1 $2  \
+	cat $1 \
 	| grep -v /$'\t' \
 	| grep -v "^-" \
 	| grep -v "^R" \
@@ -233,7 +235,14 @@ else
 		echo "Removing old deleted files file..."
 		rm /tmp/deleted-files.txt
 	else
-		echo "No previous 'changed-files.txt' file to remove, let's proceed."
+		echo "No previous 'deleted-files.txt' file to remove, let's proceed."
+	fi
+
+	if [ -f /tmp/moved-files.txt ]; then
+		echo "Removing old moved files file..."
+		rm /tmp/moved-files.txt
+	else
+		echo "No previous 'moved-files.txt' file to remove, let's proceed."
 	fi
 
 	if [ -f /tmp/md5-$DST_DATASET.txt ]; then 
@@ -253,8 +262,15 @@ else
 	## moved files are renamed or moved to a different path; 
 	## deleted are... well, deleted. 
 
+	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
+	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
+	echo "Finding all modifications from last snapshot..."
+	[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
+	sudo zfs diff -F -H -h ${LAST_SNAP} > /tmp/diff.txt
+
 	echo "Determining changed files..."
-	sudo zfs diff -F -H -h ${LAST_SNAP}  \
+	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
+	cat /tmp/diff.txt \
 		| grep -v /$'\t' \
 		| grep -v "^-" \
 		| grep -v "^R" \
@@ -262,13 +278,13 @@ else
 		| sort > /tmp/changed-files.txt
 	
 	echo "Determining moved files..."
-	sudo zfs diff -F -H -h ${LAST_SNAP} \
+	cat /tmp/diff.txt \
 		| grep -v /$'\t' \
 		| grep "^R" \
 		| sort > /tmp/moved-files.txt
 	
 	echo "Determining deleted files..." 
-	sudo zfs diff -F -H -h ${LAST_SNAP}  \
+	cat /tmp/diff.txt \
 		| grep -v /$'\t' \
 		| grep "^-" \
 		| awk 'BEGIN { FS = "\t" } ; { print $3 }' \
@@ -282,8 +298,10 @@ else
 		echo "No changed or deleted files in $SRC_PATH - nothing to backup - operation completed." 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
-		echo "There are $CHANGES changed files and $DELETES deleted files." 
+		echo "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
 		if $DEBUG ; then 
+			echo "==== Changed files are:"
+			cat /tmp/changed-files.txt
 			echo "==== Deleted files are:"
 			cat /tmp/deleted-files.txt
 			echo ""
@@ -295,11 +313,12 @@ else
 		echo "Calculating md5sums parallelizing 4x..."
 		cat /tmp/changed-files.txt \
 			| parallel -j+0 --eta md5sum {} > /tmp/md5-${DST_DATASET}.txt 
+		# Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
 		echo "Fixing paths in md5sums file..."
 		sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
 
 		if $DEBUG ; then 
-			echo "==== md5sums of modified files: "
+			echo "==== md5sums of changed files:"
 			cat /tmp/md5-$DST_DATASET.txt
 		fi	
 
@@ -310,6 +329,7 @@ else
 		if $DEBUG ; then
 			echo "==== sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}"
 		fi 
+
 		sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 
 		if $DEBUG ; then 
@@ -334,7 +354,8 @@ else
 		fi
 		# Calculating size of the increment between first snapshot and second snapshot
 		echo "Calculating data transfer size approximation..."
-		SIZE=$( compute_size ${FIRST_SNAP} ${SECOND_SNAP} )
+		## SIZE=$( compute_size ${FIRST_SNAP} ${SECOND_SNAP} )
+		SIZE=$( compute_size /tmp/diff.txt )
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
 		fi
