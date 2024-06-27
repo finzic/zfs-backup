@@ -392,6 +392,9 @@ else
 #!/bin/bash
 cd ${DST_BASE}
 md5sum -c /tmp/md5-${DST_DATASET}.txt
+RES=$?
+rm /tmp/md5-${DST_DATASET}.txt
+exit ${RES}
 EOF
 
 		ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh
