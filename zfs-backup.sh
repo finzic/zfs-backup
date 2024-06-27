@@ -302,11 +302,13 @@ else
 		if $DEBUG ; then 
 			echo "==== Changed files are:"
 			cat /tmp/changed-files.txt
+			echo ""
 			echo "==== Deleted files are:"
 			cat /tmp/deleted-files.txt
 			echo ""
 			echo "==== Moved files are: "
 			cat /tmp/moved-files.txt
+			echo ""
 		fi
 		
 		## calculating md5sum in parallel with eta display: 
