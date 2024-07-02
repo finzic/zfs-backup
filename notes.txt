@@ -140,6 +140,15 @@ Se non c'e' alcun dataset nel backup server, allora
 
 Questa cosa serve per, ad esempio, replicare il mio dataset su un nuovo dataset o su un nuovo server! Cosi' copio tutti gli snapshot anche e cio' e' bene
 Magari c'e' una feature di ZFS che fa tutto questo senza fare passetto per volta... 
+---------------
+sem,plicemente c'e' l'opzione giusta gia' fatta! 
+sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
+e' la "-R" 
+ Le fornisco l'ultimo snapshot a disposizione e dunqwue basta fare uno snapshot comunque, cosi' si copre anche il primo caso; usare questo snapshot nel comando e via. 
+Per il 'pv' resta da capire come valorizzare la 'taglia'; si puo' fare per far facile di prendere l'output di zfs list -t snapshot | valore "REFER" e via andare! 
+Da fare e cosi' si finisce. 
+Nota: per l'uso 'normale', si puo' fare ch esi faccia COMUNQUE subito un nuovo snapshot tanto non costa nulla, e i comandi successivi si basino sull'outpud di questo (zfs diff...) 
+
 
 	
 
