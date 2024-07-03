@@ -177,7 +177,7 @@ OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_
 echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 if [ ${RES} -eq 0 ]; then 
-	echo "The dataset ${SRC_DATASET} is not present in the backup system."
+	echo "The dataset ${DST_DATASET} is not present in the backup system."
 	echo "Preparing to send the whole dataset with all its snapshots..." 
 	## Get size of dataset 
 	OUTPUT=$(zfs list -t snapshot zfspool/Test | tail -n 1)
