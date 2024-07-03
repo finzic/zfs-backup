@@ -146,17 +146,6 @@ SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
 SRC_PATH=${SRC_BASE}/${SRC_DATASET}
 
-# Retrieving mountpoint for remote backup system dataset
-DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
-RES=$?
-if [ ! ${RES} -eq 0 ]; then 
-	echo "Error retrieving destination dataset mountpoint: ${RES}"
-	echo "Exiting"
-	exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
-fi 
-
-DST_BASE=${DB%/*}
-
 # display of initial data: 
 
 echo "source base folder      = ${SRC_BASE}"
@@ -242,6 +231,26 @@ else
 	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
 	## >> launch zfs snapshot send and receive at the backup machine; 
 	## >> check all transferred files' checksum with the ones previously calculated.  
+
+	# Retrieving mountpoint for remote backup system dataset
+	echo "Retrieving mountpoint for remote backup system dataset..." 
+	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
+	RES=$?
+	if [ ! ${RES} -eq 0 ]; then 
+		echo "Error retrieving destination dataset mountpoint: ${RES}"
+		echo "Destroying last snapshot... "
+		sudo zfs destroy ${CURRENT_SNAP}
+		RES=$?
+		if [ ${RES} -eq 0 ]; then 
+			echo "... destroyed. Exiting. " 
+			exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
+		else 
+			echo "... ERROR in destroying snapshot ${CURRENT_SNAP} - error code : ${RES} - exiting..." 
+			exit ${ERR_DESTROY_SNAPSHOT} 
+		fi
+	fi 
+
+	DST_BASE=${DB%/*}
 
 	cd ${SRC_BASE}
 	# Removing temp files
