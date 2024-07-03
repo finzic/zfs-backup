@@ -190,7 +190,7 @@ if [ ${RES} -eq 0 ]; then
 
 	## retrieve snapshot tag - equivalent to ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 	# SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
-	echo "Snapshot is ${CURRENT_SNAPSHOT}" 
+	echo "Current snapshot is ${CURRENT_SNAPSHOT}" 
 
 	## send the snapshot to the backup server
 	## OLD:sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
@@ -226,8 +226,7 @@ if [ ${RES} -eq 0 ]; then
 		exit ${ERR_SETTING_DST_READONLY}   
 	fi
 else 
-	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system;"
-	echo "a new snapshot will be created and incrementally transmitted."
+	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system."
 	## >> else normal case: 
 	#
 	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
@@ -253,10 +252,7 @@ else
 	fi 
 	
 	DST_BASE=${DB%/*}
-
-	if $DEBUG; then 
-		echo "==== destination base folder = ${DST_BASE}" 
-	fi
+	echo "Remote backup system dataset mountpoint is: ${DST_BASE}"
 	
 	cd ${SRC_BASE}
 	# Removing temp files
@@ -264,28 +260,28 @@ else
 		echo "Removing old changed files file..."
 		rm /tmp/changed-files.txt
 	else
-		echo "No previous 'changed-files.txt' file to remove, let's proceed."
+		echo "No previous 'changed-files.txt' file to remove."
 	fi
 
 	if [ -f /tmp/deleted-files.txt ]; then
 		echo "Removing old deleted files file..."
 		rm /tmp/deleted-files.txt
 	else
-		echo "No previous 'deleted-files.txt' file to remove, let's proceed."
+		echo "No previous 'deleted-files.txt' file to remove."
 	fi
 
 	if [ -f /tmp/moved-files.txt ]; then
 		echo "Removing old moved files file..."
 		rm /tmp/moved-files.txt
 	else
-		echo "No previous 'moved-files.txt' file to remove, let's proceed."
+		echo "No previous 'moved-files.txt' file to remove."
 	fi
 
 	if [ -f /tmp/md5-$DST_DATASET.txt ]; then 
 		echo "Removing old md5-$DST_DATASET.txt file... "
 		rm /tmp/md5-$DST_DATASET.txt
 	else 
-		echo "No previous md5-$DST_DATASET.txt file to remove, let's proceed."
+		echo "No previous md5-$DST_DATASET.txt file to remove."
 	fi
 
 	# check there are at least 2 snapshots: 
@@ -299,9 +295,8 @@ else
 	# Finding last snapshot on the backup system 
 	# ssh finzic@r4spi.local zfs list -H  -t snapshot testpool/Test-2 | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 
 	LAST_SNAPSHOT_DATE_ON_BACKUP=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
-	if $DEBUG; then 
-		echo "==== last snapshot date on backup = ${LAST_SNAPSHOT_ON_BACKUP}"
-	fi
+	echo "Last snapshot date on backup system is : ${LAST_SNAPSHOT_DATE_ON_BACKUP}"
+
 	# Check that it exists locally
 	RES=$(zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | grep ${LAST_SNAPSHOT_DATE_ON_BACKUP})
 	# if the backup snapshot date is not present locally, we have an inconsistent situation so we bail out. 
@@ -317,11 +312,9 @@ else
 			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
 			exit ${ERR_DESTROY_SNAPSHOT} 
 		fi
+	else 
+		echo "There is a snapshot with the same date on $(hostname)." 
 	fi
-	# NOTE: here, PREVIOUS_SNAP is the snapshot we took on the server the last time we ran the backup in the old way. 
-	# now we decide to transfer all snapshots that are between the last on the backup and the last on the server. 
-	# PREVIOUS_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
-	# CURRENT_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
 
 	# FROM_SNAP is the local snap with date equal to LAST_SNAPSHOT_DATE_ON_BACKUP
 	FROM_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${LAST_SNAPSHOT_DATE_ON_BACKUP}
@@ -335,9 +328,9 @@ else
 
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
 	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
-	echo "Finding all modifications from previous snapshot..."
 	[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
-	#sudo zfs diff -F -H -h ${PREVIOUS_SNAP} ${CURRENT_SNAP} > /tmp/diff.txt
+	
+	echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
 	sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
 
 	echo "Determining changed files..."
@@ -407,16 +400,6 @@ else
 			cat /tmp/md5-${DST_DATASET}.txt
 		fi	
 
-		## Create snapshot in server's ZFS dataset
-		#cho "Creating ZFS snapshot..."
-		## zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
-		#SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-		#if $DEBUG ; then
-		#	echo "==== sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}"
-		#fi 
-
-		#sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
-
 		if $DEBUG ; then 
 			echo "==== list of ZFS snapshots available: " 
 			zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET}
@@ -430,10 +413,8 @@ else
 			echo "==== Computed size is $SIZE" 
 		fi
 		PV_SIZE=$( parse_size ${SIZE} )
-		if $DEBUG ; then 
-			echo "==== Parsed size for PV is $PV_SIZE"
-		fi
-		  
+		echo "Approximate transfer size is ${PV_SIZE}"
+			  
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
 		if $DEBUG; then 
@@ -489,5 +470,4 @@ EOF
 		cd $THIS
 	fi
 fi
-
 echo "Backup operations completed successfully."
