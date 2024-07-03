@@ -169,9 +169,21 @@ Prossime feature
 [] caso incrementale: comuque servirebbe fare un invio di tutti gli snapshot dall'ultimo sul backup sino all'ultimo sul 'server'. Forse si puo' fare con -R? 
 	sudo zfs send -I zfspool/Test@2024.06.25-02.04.47 zfspool/Test@2024.07.03-14.10.05 | pv -ptebar -s 3G | ssh finzic@r4spi.local sudo zfs receive testpool/Test
 	La soluzione e' il "-I" : manda tutti gli snap dal primo all'ultimo indicati. Pero' per farlo bene bisogna trovare l'ultimo presente sul backup e vedere se c'e' anche qui. 
-	
+zfs list -H -t snapshot zfspool/Test | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/"
+-> lista delle date degli snapshot!
+
+Trovo l'ultima snapshot lato backup: 
+ssh finzic@r4spi.local zfs list -H  -t snapshot testpool/Test-2 | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 
+
+Verifico che ci sia lato server dati: 
+zfs list -H -t snapshot zfspool/Test | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | grep 2024.06.24-02.25.31
+
+Questo deve dare proprio 
+2024.06.24-02.25.31
+
+
 
 	
 
-
+ 
 
