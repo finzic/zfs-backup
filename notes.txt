@@ -160,8 +160,14 @@ Gestyione errori:
 si dovrebbe fare in modo che, se fallisce una qualche parte della vicenda, tipo fallisce la spedizione dello snapshot, allora si distrugga (DESTROY) l'ultimo appena fatto, 
 cosi' che la prossima volta si possa fare un nuovo snapshot che abbia una diff significativa. 
 
-[] fare uno snapshot come prima cosa
-[] usare il latest snapshot come punto per fare i diff successivi
+[x] fare uno snapshot come prima cosa
+[x] usare il latest snapshot come punto per fare i diff successivi
+
+=======================================================================
+Prossime feature
+[] caso primo invio: fare tutte le checksum e il controllo relativo 
+[] caso incrementale: comuque servirebbe fare un invio di tutti gli snapshot dall'ultimo sul backup sino all'ultimo sul 'server'. Forse si puo' fare con -R? 
+
 
 	
 
