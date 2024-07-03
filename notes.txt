@@ -110,12 +110,12 @@ NOTA sul caso in cui nel backup NON ci sia il dataset:
 non e' cosi' ovvio che nel mio serve NON ci sia alcuno snapshot : e' solo un caso iniziale, un corner case. 
 La cosa giusta e': 
 SE non c'e' alcun dataset nel backup server, allora
-- prendo la lista di snapshot nel server, cioe' attuale
+- prendo la lista di snapshot nel local server, cioe' attuale
 - se non ce n'e' nessuno, allora faccio come adesso: 
 	-- faccio il primo snapshot
-	-- lo trasmetto dall'altra parte; 
+	-- lo trasmetto dall'altra parte al backup server; 
 - Se invece ce n'e' gia' almeno uno, allora 
-	- faccio un nuovo snapshot ora; 
+	- faccio un nuovo snapshot ora su local server ; 
 	- trasmetto il primo snapshot come faccio adesso; 
 	- per tutti gli snapshot successivi al primo 
 		Trasmetto lo snapshot come faccio sotto, come incrementale rispetto al precedente.
@@ -130,7 +130,9 @@ Se non c'e' alcun dataset nel backup server, allora
 		- Trasmetto il primo snapshot (piu' vecchio) da solo, come faccio ora nel primo caso; 
 		- Per tutti i successivi, trasmetto lo snapshot come faccio sotto, come incrementale rispetto al precedente. 
 
-Poiche' ho ancora 2 step ripetuti sempre, li sintetizzo in uno solo: che ci sia uno snapshot o che non ci sia, comunque ne devo creare uno nuovo, dunque lo creo e basta. Ottengo questo: 
+Poiche' ho ancora 2 step ripetuti sempre, li sintetizzo in uno solo: 
+che ci sia uno snapshot o che non ci sia, comunque ne devo creare uno nuovo, dunque lo creo e basta. 
+Ottengo questo: 
 
 Se non c'e' alcun dataset nel backup server, allora
 	- creo un nuovo snapshot (puo' essere il primo come l'ultimo se ce n'erano altri, non cambia)
@@ -141,14 +143,25 @@ Se non c'e' alcun dataset nel backup server, allora
 Questa cosa serve per, ad esempio, replicare il mio dataset su un nuovo dataset o su un nuovo server! Cosi' copio tutti gli snapshot anche e cio' e' bene
 Magari c'e' una feature di ZFS che fa tutto questo senza fare passetto per volta... 
 ---------------
-sem,plicemente c'e' l'opzione giusta gia' fatta! 
+semplicemente c'e' l'opzione giusta gia' fatta! L'opzione "-R" ! 
+
 sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
+Lo snapshot indicato e' il piu' recente! 
 e' la "-R" 
- Le fornisco l'ultimo snapshot a disposizione e dunqwue basta fare uno snapshot comunque, cosi' si copre anche il primo caso; usare questo snapshot nel comando e via. 
+
+Le fornisco l'ultimo snapshot a disposizione e dunqwue basta fare uno snapshot comunque, cosi' si copre anche il primo caso; usare questo snapshot nel comando e via. 
+
 Per il 'pv' resta da capire come valorizzare la 'taglia'; si puo' fare per far facile di prendere l'output di zfs list -t snapshot | valore "REFER" e via andare! 
 Da fare e cosi' si finisce. 
+
 Nota: per l'uso 'normale', si puo' fare ch esi faccia COMUNQUE subito un nuovo snapshot tanto non costa nulla, e i comandi successivi si basino sull'outpud di questo (zfs diff...) 
 
+Gestyione errori: 
+si dovrebbe fare in modo che, se fallisce una qualche parte della vicenda, tipo fallisce la spedizione dello snapshot, allora si distrugga (DESTROY) l'ultimo appena fatto, 
+cosi' che la prossima volta si possa fare un nuovo snapshot che abbia una diff significativa. 
+
+[] fare uno snapshot come prima cosa
+[] usare il latest snapshot come punto per fare i diff successivi
 
 	
 

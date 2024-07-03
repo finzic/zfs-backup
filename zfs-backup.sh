@@ -5,12 +5,14 @@ DEBUG=true				# set it to false for normal operation
 
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
-ERR_FIRST_SNAPSHOT=101
+ERR_SNAPSHOT=101
 ERR_SETTING_DST_READONLY=102
 ERR_BAD_MD5_CHECK=103
 ERR_ZFS_SEND_RECV=104
 ERR_DEST_MOUNTPOINT_RETRIEVAL=105
 ERR_BAD_POOL_DESCR=106
+ERR_SEND_DATASET=107
+ERR_DESTROY_SNAPSHOT=108
 
 
 ##############
@@ -167,41 +169,60 @@ echo "destination pool        = ${DST_POOL}"
 echo "destination dataset     = ${DST_DATASET}"
 echo "======================================================"
 
-## first snapshot ever: need to check if the dataset is available at the DSTination, and if there are no snapshots present at the SRC.
-## In this case, 
-## 1) perform the first snapshot;  
-## 2) transfer the dataset with the first type of command 
+## Performing snapshot to start off.
+echo "Creating snapshot..."
+SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
+CURRENT_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
+sudo zfs snapshot ${CURRENT_SNAPSHOT}
+RES=$?
+if [ ${RES} -eq 0 ]; then 
+	echo "Snapshot performed correctly: ${CURRENT_SNAPSHOT}"
+else
+	echo "Error: snapshot not performed. Return code: ${RES}"
+	exit ${ERR_SNAPSHOT}
+fi
 
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 ) 
 echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 if [ ${RES} -eq 0 ]; then 
-	echo "The dataset ${SRC_DATASET} is not present in the backup system -> performing first snapshot and transfer."
-	## Perform first snapshot
-	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-	sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
-	## retrieve its tag 
+	echo "The dataset ${SRC_DATASET} is not present in the backup system."
+	echo "Preparing to send the whole dataset with all its snapshots..." 
+	## Get size of dataset 
 	OUTPUT=$(zfs list -t snapshot zfspool/Test | tail -n 1)
-	SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
-	echo "Snapshot is ${SNAPSHOT}" 
 	## retrieve length and convert into something good for PV
 	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
 	PV_SIZE=$(parse_size ${ORIG_SIZE})
-	
 	if  ${DEBUG} ; then 
 		echo "ORIG_SIZE = ${ORIG_SIZE}; PV_SIZE = ${PV_SIZE}" 
 	fi
+
+	## retrieve snapshot tag - equivalent to ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
+	# SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
+	echo "Snapshot is ${CURRENT_SNAPSHOT}" 
+
 	## send the snapshot to the backup server
-	##sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
-    echo "Sending first snapshot to backup system..." 
-	sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
+	## OLD:sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
+	## sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
+    echo "Sending all dataset to backup system..." 
+	# sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
+	sudo zfs send -R ${CURRENT_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
 	else
-		echo "... Error in sending first snapshot: ${RES}"
-		exit ${ERR_FIRST_SNAPSHOT}
+		echo "... Error in sending dataset: ${RES}"
+		echo "Destroying last snapshot..."
+		sudo zfs destroy ${CURRENT_SNAPSHOT}
+		RES=$?
+		if [ ${RES} -eq 0 ]; then 
+			echo "... destroyed. Exiting. " 
+			exit ${ERR_SEND_DATASET}
+		else 
+			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
+			exit ${ERR_DESTROY_SNAPSHOT} 
+		fi
     fi
 
 	# Setting the dataset as readonly is necessary for subsequent snapshot sending.
@@ -252,11 +273,28 @@ else
 		echo "No previous md5-$DST_DATASET.txt file to remove, let's proceed."
 	fi
 
-	### get differences from zfs diff on the server
-	LAST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
-	if $DEBUG; then
-		echo "==== LAST SNAP = ${LAST_SNAP} "
+	# check there are at least 2 snapshots: 
+	N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
+	if [ $N_SNAPS -lt 2 ]; then 
+		echo "There are less than 2 snapshots:" 
+		zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} 
+		exit $ERR_LESS_THAN_2_SNAPS
+    fi
+
+	PREVIOUS_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
+	CURRENT_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
+
+	if $DEBUG ; then 
+		echo "==== first snapshot = $PREVIOUS_SNAP"
+		echo "==== second snapshot = $CURRENT_SNAP"
+		echo "==== CURRENT_SNAPSHOT=${CURRENT_SNAPSHOT}"
 	fi
+
+	### get differences from zfs diff on the server
+	#LAST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
+	#if $DEBUG; then
+	#	echo "==== LAST SNAP = ${LAST_SNAP} "
+	#fi
 
 	## changed files are added or modified; 
 	## moved files are renamed or moved to a different path; 
@@ -264,9 +302,9 @@ else
 
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
 	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
-	echo "Finding all modifications from last snapshot..."
+	echo "Finding all modifications from previous snapshot..."
 	[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
-	sudo zfs diff -F -H -h ${LAST_SNAP} > /tmp/diff.txt
+	sudo zfs diff -F -H -h ${PREVIOUS_SNAP} ${CURRENT_SNAP} > /tmp/diff.txt
 
 	echo "Determining changed files..."
 	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
@@ -295,7 +333,16 @@ else
 	MOVED=$(wc -l < /tmp/moved-files.txt)
 	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ]
 	then
-		echo "No changed or deleted files in $SRC_PATH - nothing to backup - operation completed." 
+		echo "No changed or deleted files in $SRC_PATH - nothing to backup - destroying useless snapshot..." 
+		sudo zfs destroy ${CURRENT_SNAP}
+		RES=$?
+		if [ ${RES} -eq 0 ]; then 
+			echo "... destroyed. Exiting. " 
+			exit ${ERR_SEND_DATASET}
+		else 
+			echo "... ERROR in destroying snapshot ${CURRENT_SNAP} - error code : ${RES} - exiting..." 
+			exit ${ERR_DESTROY_SNAPSHOT} 
+		fi
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
@@ -324,39 +371,24 @@ else
 			cat /tmp/md5-$DST_DATASET.txt
 		fi	
 
-		# Create snapshot in server's ZFS dataset
-		echo "Creating ZFS snapshot..."
-		# zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
-		SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-		if $DEBUG ; then
-			echo "==== sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}"
-		fi 
+		## Create snapshot in server's ZFS dataset
+		#cho "Creating ZFS snapshot..."
+		## zfs snapshot zfspool/Documents@$(date +%Y.%m.%d-%H.%M.%S)
+		#SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
+		#if $DEBUG ; then
+		#	echo "==== sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}"
+		#fi 
 
-		sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
+		#sudo zfs snapshot ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 
 		if $DEBUG ; then 
 			echo "==== list of ZFS snapshots available: " 
 			zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET}
 		fi
 
-		# check there are at least 2 snapshots: 
-		N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
-		if [ $N_SNAPS -lt 2 ]; then 
-			echo "There are less than 2 snapshots:" 
-			zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} 
-			exit $ERR_LESS_THAN_2_SNAPS
-        fi
-
-		FIRST_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
-		SECOND_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}' )
-
-		if $DEBUG ; then 
-			echo "==== first snapshot = $FIRST_SNAP"
-			echo "==== second snapshot = $SECOND_SNAP"
-		fi
 		# Calculating size of the increment between first snapshot and second snapshot
 		echo "Calculating data transfer size approximation..."
-		## SIZE=$( compute_size ${FIRST_SNAP} ${SECOND_SNAP} )
+		## SIZE=$( compute_size ${PREVIOUS_SNAP} ${CURRENT_SNAP} )
 		SIZE=$( compute_size /tmp/diff.txt )
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
@@ -369,17 +401,25 @@ else
 		# Sending out the snapshot increment 
 		echo "Sending snapshot"
 		if $DEBUG; then 
-			echo "==== zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
+			echo "==== zfs send -i ${PREVIOUS_SNAP} ${CURRENT_SNAP} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
 		fi
 		
-		sudo zfs send -i ${FIRST_SNAP} ${SECOND_SNAP} \
+		sudo zfs send -i ${PREVIOUS_SNAP} ${CURRENT_SNAP} \
 			| pv -ptebar -s ${PV_SIZE} \
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
 		
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
-			echo "Error in zfs send | zfs recv: ${RES}"
-			exit ${ERR_ZFS_SEND_RECV}
+			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
+			sudo zfs destroy ${CURRENT_SNAP}
+			RES=$?
+			if [ ${RES} -eq 0 ]; then 
+				echo "... destroyed. Exiting. " 
+				exit ${ERR_ZFS_SEND_RECV}
+			else 
+				echo "... ERROR in destroying snapshot ${CURRENT_SNAP} - error code : ${RES} - exiting..." 
+				exit ${ERR_DESTROY_SNAPSHOT} 
+			fi
 		fi
 		if $DEBUG ; then 
 			echo "Result of zfs send | zfs recv is: ${RES}"
@@ -411,7 +451,6 @@ EOF
 			exit ${ERR_BAD_MD5_CHECK}
 		fi
 		cd $THIS
-		echo "Backup operation finished successfully."
 	fi
-
 fi
+echo "Backup operations completed successfully."
