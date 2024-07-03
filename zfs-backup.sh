@@ -180,20 +180,14 @@ if [ ${RES} -eq 0 ]; then
 	echo "The dataset ${DST_DATASET} is not present in the backup system."
 	echo "Preparing to send the whole dataset with all its snapshots..." 
 	## Get size of dataset 
-	OUTPUT=$(zfs list -t snapshot zfspool/Test | tail -n 1)
+	OUTPUT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1)
 	## retrieve length and convert into something good for PV
 	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
 	PV_SIZE=$(parse_size ${ORIG_SIZE})
-	if  ${DEBUG} ; then 
-		echo "ORIG_SIZE = ${ORIG_SIZE}; PV_SIZE = ${PV_SIZE}" 
-	fi
-
-	## retrieve snapshot tag - equivalent to ${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
-	# SNAPSHOT=$(echo $OUTPUT | awk '{print $1}')
+	echo "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${PV_SIZE}" 
 	echo "Current snapshot is ${CURRENT_SNAPSHOT}" 
 
-	## send the snapshot to the backup server
-	## OLD:sudo zfs send zfspool/Test@2024.06.03-09.56.26 | pv -ptebar -s 5500M | ssh finzic@r4spi.local  sudo zfs recv backuppool/Test
+	## send the snapshots to the backup server
 	## sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
     echo "Sending all dataset to backup system..." 
 	# sudo zfs send ${SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
