@@ -380,10 +380,12 @@ else
 		# Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
 		echo "Fixing paths in md5sums file..."
 		sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
+		echo "Substituting ${SRC_DATASET} with ${DST_DATASET} in md5sums file..."
+		sed -i "s|${SRC_DATASET}|${DST_DATASET}|" /tmp/md5-${DST_DATASET}.txt 
 
 		if $DEBUG ; then 
 			echo "==== md5sums of changed files:"
-			cat /tmp/md5-$DST_DATASET.txt
+			cat /tmp/md5-${DST_DATASET}.txt
 		fi	
 
 		## Create snapshot in server's ZFS dataset
