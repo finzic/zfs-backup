@@ -317,6 +317,7 @@ else
 			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
 			exit ${ERR_DESTROY_SNAPSHOT} 
 		fi
+	fi
 	# NOTE: here, PREVIOUS_SNAP is the snapshot we took on the server the last time we ran the backup in the old way. 
 	# now we decide to transfer all snapshots that are between the last on the backup and the last on the server. 
 	# PREVIOUS_SNAP=$(zfs list -t snapshot  ${SRC_POOL}/${SRC_DATASET} | tail -n 2 | head -n 1 | awk '{print $1}' )
@@ -488,4 +489,5 @@ EOF
 		cd $THIS
 	fi
 fi
+
 echo "Backup operations completed successfully."
