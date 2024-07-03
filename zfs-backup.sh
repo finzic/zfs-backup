@@ -225,7 +225,8 @@ if [ ${RES} -eq 0 ]; then
 		exit ${ERR_SETTING_DST_READONLY}   
 	fi
 else 
-	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system -> a new snapshot will be created and incrementally transmitted."
+	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system;"
+	echo "a new snapshot will be created and incrementally transmitted."
 	## >> else normal case: 
 	#
 	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
@@ -249,8 +250,13 @@ else
 			exit ${ERR_DESTROY_SNAPSHOT} 
 		fi
 	fi 
-
+	
 	DST_BASE=${DB%/*}
+
+	if $DEBUG; then 
+		echo "==== destination base folder = ${DST_BASE}" 
+	fi
+	
 
 	cd ${SRC_BASE}
 	# Removing temp files
@@ -444,7 +450,7 @@ else
 cd ${DST_BASE}
 md5sum -c /tmp/md5-${DST_DATASET}.txt
 RES=$?
-rm /tmp/md5-${DST_DATASET}.txt
+# rm /tmp/md5-${DST_DATASET}.txt
 exit ${RES}
 EOF
 
