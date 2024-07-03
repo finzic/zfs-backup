@@ -167,7 +167,9 @@ cosi' che la prossima volta si possa fare un nuovo snapshot che abbia una diff s
 Prossime feature
 [] caso primo invio: fare tutte le checksum e il controllo relativo 
 [] caso incrementale: comuque servirebbe fare un invio di tutti gli snapshot dall'ultimo sul backup sino all'ultimo sul 'server'. Forse si puo' fare con -R? 
-
+	sudo zfs send -I zfspool/Test@2024.06.25-02.04.47 zfspool/Test@2024.07.03-14.10.05 | pv -ptebar -s 3G | ssh finzic@r4spi.local sudo zfs receive testpool/Test
+	La soluzione e' il "-I" : manda tutti gli snap dal primo all'ultimo indicati. Pero' per farlo bene bisogna trovare l'ultimo presente sul backup e vedere se c'e' anche qui. 
+	
 
 	
 
