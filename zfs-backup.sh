@@ -300,7 +300,7 @@ else
 	# Check that it exists locally
 	RES=$(zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | grep ${LAST_SNAPSHOT_DATE_ON_BACKUP})
 	# if the backup snapshot date is not present locally, we have an inconsistent situation so we bail out. 
-	if [ ${RES} != ${LAST_SNAPSHOT_DATE_ON_BACKUP} ]; then 
+	if [ x${RES} == x ] ||  [ ${RES} != ${LAST_SNAPSHOT_DATE_ON_BACKUP} ]; then 
 		echo "Hmm - remote snapshot ${LAST_SNAPSHOT_DATE_ON_BACKUP} is not present locally... this is a problem."
 		echo "Destroying last snapshot... "
 		sudo zfs destroy ${CURRENT_SNAPSHOT}
