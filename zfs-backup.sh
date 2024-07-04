@@ -459,6 +459,7 @@ else
 			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
 			if [ ${ARE_THERE_DIFFERENCES} == true ]; then 
 			destroy_snapshot ${ERR_ZFS_SEND_RECV}
+			fi
 		fi
 		if $DEBUG ; then 
 			echo "Result of zfs send | zfs recv is: ${RES}"
