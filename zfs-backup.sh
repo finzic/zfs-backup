@@ -159,18 +159,48 @@ echo "destination pool        = ${DST_POOL}"
 echo "destination dataset     = ${DST_DATASET}"
 echo "======================================================"
 
-## Performing snapshot to start off.
-echo "Creating snapshot..."
-SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
-CURRENT_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
-sudo zfs snapshot ${CURRENT_SNAPSHOT}
-RES=$?
-if [ ${RES} -eq 0 ]; then 
-	echo "Snapshot performed correctly: ${CURRENT_SNAPSHOT}"
-else
-	echo "Error: snapshot not performed. Return code: ${RES}"
-	exit ${ERR_SNAPSHOT}
+# set variables
+ARE_THERE_DIFFERENCES=
+BACKUP_ALIGNED_WITH_SERVER=
+
+## Get latest snapshot
+
+LATEST_SNAPSHOT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}')
+echo "Latest Snapshot is ${LATEST_SNAPSHOT}"
+
+echo "Finding differences between ${LATEST_SNAPSHOT} and current status of ${SRC_POOL}/${SRC_DATASET} - this could take some time..."
+sudo zfs diff -F -H -h ${LATEST_SNAPSHOT} > /tmp/diff.txt
+
+if $DEBUG; then 
+	cat /tmp/diff.txt
 fi
+
+#if there are NO differences then we will set CURRENT_SNAPSHOT=LATEST_SNAPSHOT, 
+# otherwise a snapshot will be created. 
+# the /tmp/diff.txt file is anyway OK if there are differences. 
+
+RES=$(cat /tmp/diff.txt | wc -l)
+if [ ${RES} -eq 0 ]; then 
+	echo "There are no differences -> the latest snapshot will be maintained. "
+	ARE_THERE_DIFFERENCES=false 
+	CURRENT_SNAPSHOT=${LATEST_SNAPSHOT}
+else 
+	echo "There are differences -> creating a snapshot..."
+	ARE_THERE_DIFFERENCES=true
+	## Performing snapshot to start off.
+	echo "Creating snapshot..."
+	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
+	CURRENT_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
+	sudo zfs snapshot ${CURRENT_SNAPSHOT}
+	RES=$?
+	if [ ${RES} -eq 0 ]; then 
+		echo "Snapshot performed correctly: ${CURRENT_SNAPSHOT}"
+	else
+		echo "Error: snapshot not performed. Return code: ${RES}"
+		exit ${ERR_SNAPSHOT}
+	fi
+fi
+
 
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 ) 
