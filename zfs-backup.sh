@@ -82,6 +82,20 @@ function compute_size() {
 	| awk '{print $1}'
 
 }
+
+function destroy_snapshot() {
+	EXIT_CODE=$1
+	echo "Destroying last snapshot... "
+	sudo zfs destroy ${CURRENT_SNAPSHOT}
+	RES=$?
+	if [ ${RES} -eq 0 ]; then 
+		echo "... destroyed. Exiting. " 
+		exit ${EXIT_CODE}
+	else 
+		echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
+		exit ${ERR_DESTROY_SNAPSHOT}
+	fi
+}
 ######################################################################################3
 
 ########
@@ -168,6 +182,7 @@ BACKUP_ALIGNED_WITH_SERVER=
 LATEST_SNAPSHOT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}')
 echo "Latest Snapshot is ${LATEST_SNAPSHOT}"
 
+[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt
 echo "Finding differences between ${LATEST_SNAPSHOT} and current status of ${SRC_POOL}/${SRC_DATASET} - this could take some time..."
 sudo zfs diff -F -H -h ${LATEST_SNAPSHOT} > /tmp/diff.txt
 
@@ -227,15 +242,20 @@ if [ ${RES} -eq 0 ]; then
 		echo "... Everything OK"
 	else
 		echo "... Error in sending dataset: ${RES}"
-		echo "Destroying last snapshot..."
-		sudo zfs destroy ${CURRENT_SNAPSHOT}
-		RES=$?
-		if [ ${RES} -eq 0 ]; then 
-			echo "... destroyed. Exiting. " 
-			exit ${ERR_SEND_DATASET}
+		if [ ${ARE_THERE_DIFFERENCES} == true ] ; then
+			destroy_snapshot ${ERR_SEND_DATASET} 
+			echo "Destroying last snapshot..."
+			sudo zfs destroy ${CURRENT_SNAPSHOT}
+			RES=$?
+			if [ ${RES} -eq 0 ]; then 
+				echo "... destroyed. Exiting. " 
+				exit ${ERR_SEND_DATASET}
+			else 
+				echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
+				exit ${ERR_DESTROY_SNAPSHOT} 
+			fi
 		else 
-			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
-			exit ${ERR_DESTROY_SNAPSHOT} 
+			echo "There are no differences - no new snapshot has been created -> it's all good, not going to remove any snapshot." 
 		fi
     fi
 
@@ -250,29 +270,17 @@ if [ ${RES} -eq 0 ]; then
 		exit ${ERR_SETTING_DST_READONLY}   
 	fi
 else 
+	# BIG CASE: ongoing backup, already sent once.
 	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system."
 	## >> else normal case: 
 	#
-	## >> compute the size as an integer with unity of measure (K,M,G,T) for pv to display eta correctly; 
-	## >> launch zfs snapshot send and receive at the backup machine; 
-	## >> check all transferred files' checksum with the ones previously calculated.  
-
 	# Retrieving mountpoint for remote backup system dataset
 	echo "Retrieving mountpoint for remote backup system dataset..." 
 	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
 	RES=$?
 	if [ ! ${RES} -eq 0 ]; then 
 		echo "Error retrieving destination dataset mountpoint: ${RES}"
-		echo "Destroying last snapshot... "
-		sudo zfs destroy ${CURRENT_SNAPSHOT}
-		RES=$?
-		if [ ${RES} -eq 0 ]; then 
-			echo "... destroyed. Exiting. " 
-			exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
-		else 
-			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
-			exit ${ERR_DESTROY_SNAPSHOT} 
-		fi
+		destroy_snapshot ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
 	fi 
 	
 	DST_BASE=${DB%/*}
@@ -320,42 +328,48 @@ else
 	# ssh finzic@r4spi.local zfs list -H  -t snapshot testpool/Test-2 | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 
 	LAST_SNAPSHOT_DATE_ON_BACKUP=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
 	echo "Last snapshot date on backup system is : ${LAST_SNAPSHOT_DATE_ON_BACKUP}"
+	LAST_SNAPSHOT_DATE_ON_SERVER=$( zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1  )
 
-	# Check that it exists locally
+	# if there are no differences and last snapshot dates are equal, then there is nothing to do -> we exit. 
+	if [ !{ARE_THERE_DIFFERENCES} ] && [ ${LAST_SNAPSHOT_DATE_ON_BACKUP} == ${LAST_SNAPSHOT_DATE_ON_SERVER} ] ; then
+		echo "No differences have been found; last snapshot date on backup is equal to last snapshot date on server"
+		echo "-> no backup action is needed."
+		exit 0
+	fi
+
+	# Check that LAST_SNAPSHOT_DATE_ON_BACKUP exists locally
 	RES=$(zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | grep ${LAST_SNAPSHOT_DATE_ON_BACKUP})
 	# if the backup snapshot date is not present locally, we have an inconsistent situation so we bail out. 
 	if [ x${RES} == x ] ||  [ ${RES} != ${LAST_SNAPSHOT_DATE_ON_BACKUP} ]; then 
 		echo "Hmm - remote snapshot ${LAST_SNAPSHOT_DATE_ON_BACKUP} is not present locally... this is a problem."
-		echo "Destroying last snapshot... "
-		sudo zfs destroy ${CURRENT_SNAPSHOT}
-		RES=$?
-		if [ ${RES} -eq 0 ]; then 
-			echo "... destroyed. Exiting. " 
-			exit ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
-		else 
-			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
-			exit ${ERR_DESTROY_SNAPSHOT} 
+		if [${ARE_THERE_DIFFERENCES} == true ]; then
+			destroy_snapshot ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
+		else
+			echo "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
 		fi
 	else 
 		echo "There is a snapshot with the same date on $(hostname)." 
 	fi
 
+	# From now on, the real 'backup' operation begins.
+
 	# FROM_SNAP is the local snap with date equal to LAST_SNAPSHOT_DATE_ON_BACKUP
 	FROM_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${LAST_SNAPSHOT_DATE_ON_BACKUP}
 	
 	if $DEBUG ; then 
-		echo "==== first snapshot  = $FROM_SNAPSHOT"
-		echo "==== second snapshot = ${CURRENT_SNAPSHOT}"
+		echo "==== first snapshot               = ${FROM_SNAPSHOT}"
+		echo "==== second snapshot              = ${CURRENT_SNAPSHOT}"
+		echo "==== last snapshot date on server = ${LAST_SNAPSHOT_DATE_ON_SERVER}"
 	fi
 
 	# now we transfer from FROM_SNAP to CURRENT_SNAPSHOT 
-
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
 	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
-	[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
+	# [[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
 	
-	echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
-	sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
+	# echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
+	# sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
+	echo "Modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT} have already been found."
 
 	echo "Determining changed files..."
 	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
@@ -384,16 +398,7 @@ else
 	MOVED=$(wc -l < /tmp/moved-files.txt)
 	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ]
 	then
-		echo "No changed or deleted files in $SRC_PATH - nothing to backup - destroying useless snapshot..." 
-		sudo zfs destroy ${CURRENT_SNAPSHOT}
-		RES=$?
-		if [ ${RES} -eq 0 ]; then 
-			echo "... destroyed. Exiting. " 
-			exit ${ERR_SEND_DATASET}
-		else 
-			echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
-			exit ${ERR_DESTROY_SNAPSHOT} 
-		fi
+		echo "No changed or deleted files in $SRC_PATH - nothing to backup" 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
@@ -452,15 +457,8 @@ else
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
 			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
-			sudo zfs destroy ${CURRENT_SNAPSHOT}
-			RES=$?
-			if [ ${RES} -eq 0 ]; then 
-				echo "... destroyed. Exiting. " 
-				exit ${ERR_ZFS_SEND_RECV}
-			else 
-				echo "... ERROR in destroying snapshot ${CURRENT_SNAPSHOT} - error code : ${RES} - exiting..." 
-				exit ${ERR_DESTROY_SNAPSHOT} 
-			fi
+			if [ ${ARE_THERE_DIFFERENCES} == true ]; then 
+			destroy_snapshot ${ERR_ZFS_SEND_RECV}
 		fi
 		if $DEBUG ; then 
 			echo "Result of zfs send | zfs recv is: ${RES}"
