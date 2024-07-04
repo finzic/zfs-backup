@@ -182,19 +182,19 @@ BACKUP_ALIGNED_WITH_SERVER=
 LATEST_SNAPSHOT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}')
 echo "Latest Snapshot is ${LATEST_SNAPSHOT}"
 
-[[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt
+[[ -f /tmp/diff0.txt ]] && rm /tmp/diff0.txt
 echo "Finding differences between ${LATEST_SNAPSHOT} and current status of ${SRC_POOL}/${SRC_DATASET} - this could take some time..."
-sudo zfs diff -F -H -h ${LATEST_SNAPSHOT} > /tmp/diff.txt
+sudo zfs diff -F -H -h ${LATEST_SNAPSHOT} > /tmp/diff0.txt
 
 if $DEBUG; then 
-	cat /tmp/diff.txt
+	cat /tmp/diff0.txt
 fi
 
 #if there are NO differences then we will set CURRENT_SNAPSHOT=LATEST_SNAPSHOT, 
 # otherwise a snapshot will be created. 
 # the /tmp/diff.txt file is anyway OK if there are differences. 
 
-RES=$(cat /tmp/diff.txt | wc -l)
+RES=$(cat /tmp/diff0.txt | wc -l)
 if [ ${RES} -eq 0 ]; then 
 	echo "There are no differences -> the latest snapshot will be maintained. "
 	ARE_THERE_DIFFERENCES=false 
@@ -373,9 +373,8 @@ else
 	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
 	# [[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
 	
-	# echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
-	# sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
-	echo "Modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT} have already been found."
+	echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
+	sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
     
 	echo "Determining changed files..."
 	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
