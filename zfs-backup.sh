@@ -330,8 +330,14 @@ else
 	echo "Last snapshot date on backup system is : ${LAST_SNAPSHOT_DATE_ON_BACKUP}"
 	LAST_SNAPSHOT_DATE_ON_SERVER=$( zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1  )
 
+	if [ ${LAST_SNAPSHOT_DATE_ON_BACKUP} == ${LAST_SNAPSHOT_DATE_ON_SERVER} ]; then
+		BACKUP_ALIGNED_WITH_SERVER=true
+	else
+		BACKUP_ALIGNED_WITH_SERVER=false
+	fi
+
 	# if there are no differences and last snapshot dates are equal, then there is nothing to do -> we exit. 
-	if [ !{ARE_THERE_DIFFERENCES} ] && [ ${LAST_SNAPSHOT_DATE_ON_BACKUP} == ${LAST_SNAPSHOT_DATE_ON_SERVER} ] ; then
+	if [ !{ARE_THERE_DIFFERENCES} ] && [ ${BACKUP_ALIGNED_WITH_SERVER} == true ] ; then
 		echo "No differences have been found; last snapshot date on backup is equal to last snapshot date on server"
 		echo "-> no backup action is needed."
 		exit 0
@@ -370,7 +376,7 @@ else
 	# echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT}..."
 	# sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_SNAPSHOT} > /tmp/diff.txt
 	echo "Modifications from ${FROM_SNAPSHOT} to ${CURRENT_SNAPSHOT} have already been found."
-
+    
 	echo "Determining changed files..."
 	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
 	cat /tmp/diff.txt \
@@ -396,9 +402,9 @@ else
 	CHANGES=$(wc -l < /tmp/changed-files.txt) 
 	DELETES=$(wc -l < /tmp/deleted-files.txt)
 	MOVED=$(wc -l < /tmp/moved-files.txt)
-	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ]
+	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ] && [ ${BACKUP_ALIGNED_WITH_SERVER} == true ]
 	then
-		echo "No changed or deleted files in $SRC_PATH - nothing to backup" 
+		echo "No changed or deleted files in $SRC_PATH AND backup is aligned with server - nothing to backup" 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
 		echo "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
@@ -413,6 +419,8 @@ else
 			cat /tmp/moved-files.txt
 			echo ""
 		fi
+
+		echo "Backup is aligned with server? ${BACKUP_ALIGNED_WITH_SERVER}"
 		
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
