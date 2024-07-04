@@ -184,6 +184,23 @@ Prossime feature
 	() Ho delle differenze locali -> faccio il backup dall'ultimo snap remoto all'ultmio che faccio ora localmente; 
 	() NON ho differenze locali MA il backup e' indietro con gli snap allora posso buttare via lo snap appena fatto e fare con l'ultimo significativo. 
 
+=============
+finzic@morla ~/src/zfs-backup  (main) $ L=$(zfs list -t snapshot zfspool/Test | tail -n 1 | awk '{print $1}')
+finzic@morla ~/src/zfs-backup  (main) $ echo $L
+zfspool/Test@2024.07.04-01.36.12
+finzic@morla ~/src/zfs-backup  (main) $ sudo zfs diff $L
+finzic@morla ~/src/zfs-backup  (main) $ D=$(sudo zfs diff $L)
+finzic@morla ~/src/zfs-backup  (main) $ N=$(echo $D | wc -l)
+finzic@morla ~/src/zfs-backup  (main) $ echo $N
+1
+finzic@morla ~/src/zfs-backup  (main) $ if [ x$D == x ]; then echo "It is empty" ; else echo "it is not empty"; fi
+It is empty
+
+Se e' empty allora prendo $L come ULTIMO SNAPSHOT altrimenti ne faccio uno ora. 
+E cosi' risolvo la questione se fare o no uno snapshot. 
+SE NON ne devo fare, allora devo controllare se dall'altra parte ci sono tutti gli snapshot oppure no; 
+se ci sono tutti allora non faccio veramente nulla; 
+altrimenti mando via la differenza.
 
 
 
