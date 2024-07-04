@@ -196,7 +196,7 @@ fi
 
 RES=$(cat /tmp/diff0.txt | wc -l)
 if [ ${RES} -eq 0 ]; then 
-	echo "There are no differences -> the latest snapshot will be maintained. "
+	echo "There are no local differences -> the latest local snapshot will be considered as current snapshot."
 	ARE_THERE_DIFFERENCES=false 
 	CURRENT_SNAPSHOT=${LATEST_SNAPSHOT}
 else 
@@ -215,6 +215,10 @@ else
 		exit ${ERR_SNAPSHOT}
 	fi
 fi
+echo ""
+echo "Current snapshot = ${CURRENT_SNAPSHOT}".
+echo ""
+
 
 
 ## Checking if the dataset is already present at the backup server: 
