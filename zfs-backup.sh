@@ -273,7 +273,7 @@ else
 	fi
 fi
 echo ""
-echo "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}".
+echo "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
 
 ## Checking if the dataset is already present at the backup server: 
