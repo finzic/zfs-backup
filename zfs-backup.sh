@@ -379,7 +379,7 @@ else
 	# if the backup snapshot date is not present locally, we have an inconsistent situation so we bail out. 
 	if [ x${RES} == x ] ||  [ ${RES} != ${LAST_SNAPSHOT_DATE_ON_REMOTE} ]; then 
 		echo "Hmm - remote snapshot ${LAST_SNAPSHOT_DATE_ON_REMOTE} is not present locally... this is a problem."
-		if [${ARE_THERE_DIFFERENCES} == true ]; then
+		if [ ${ARE_THERE_DIFFERENCES} == true ]; then
 			destroy_snapshot ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
 		else
 			echo "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
