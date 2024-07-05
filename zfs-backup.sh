@@ -384,6 +384,7 @@ else
 		else
 			echo "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
 		fi
+		exit ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
 	else 
 		echo "There is a snapshot with the same date on LOCAL system." 
 	fi
