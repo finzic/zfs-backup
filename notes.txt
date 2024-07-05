@@ -192,7 +192,7 @@ finzic@morla ~/src/zfs-backup  (main) $ sudo zfs diff $L
 finzic@morla ~/src/zfs-backup  (main) $ D=$(sudo zfs diff $L)
 finzic@morla ~/src/zfs-backup  (main) $ N=$(echo $D | wc -l)
 finzic@morla ~/src/zfs-backup  (main) $ echo $N
-1
+
 finzic@morla ~/src/zfs-backup  (main) $ if [ x$D == x ]; then echo "It is empty" ; else echo "it is not empty"; fi
 It is empty
 
@@ -201,6 +201,12 @@ E cosi' risolvo la questione se fare o no uno snapshot.
 SE NON ne devo fare, allora devo controllare se dall'altra parte ci sono tutti gli snapshot oppure no; 
 se ci sono tutti allora non faccio veramente nulla; 
 altrimenti mando via la differenza.
+=====
+calcolare la differenza di file. 
+- inizialmente faccio diff da ultimo snapshot locale. Cosi' vedo se devo fare un nuovo snapshot. 
+- poi vedo qual e' l'ultimo snapshot remoto e vedo se e' contenuto nei locali come data
+- poi la vera differenza e' tra l'ultimo snapshot 'remoto' in locale e l'ultimo snapshot appena fatto, se devo farlo, e di questo faccio la diff vera.
+
 
 
 
