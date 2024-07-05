@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 ### VARIABLES. 
-DEBUG=true				# set it to false for normal operation
+DEBUG=false				# set it to false for normal operation
 
 ## ERROR CODES
 ERR_LESS_THAN_2_SNAPS=100
@@ -34,6 +34,7 @@ DST_DATASET=<destination ZFS dataset name>
 DST_USERNAME=<destination username>
 DST_ADDR=<destination address>"
 }
+###################################
 ## parse_size - provide a simple modification of the size passed so that it will be integer multiple of K,M,G,T for pv to correctly set max size and progress bar. 
 function parse_size() {
     size=$1
@@ -65,7 +66,7 @@ function parse_size() {
         esac
     fi
 }
-
+###################################
 ## compute_size - calculates approximate size of files being transferred as difference between snapshots
 ## $1 shall be the path of a file containing result of zfs diff -F -H -h ${LAST_SNAP}
 function compute_size() {
@@ -82,6 +83,7 @@ function compute_size() {
 	| awk '{print $1}'
 
 }
+###################################
 
 function destroy_snapshot() {
 	EXIT_CODE=$1
@@ -96,6 +98,7 @@ function destroy_snapshot() {
 		exit ${ERR_DESTROY_SNAPSHOT}
 	fi
 }
+###################################
 
 function parallel_md5sum () {
 	LIST_OF_FILES=$1
@@ -110,6 +113,7 @@ function parallel_md5sum () {
 	echo "Substituting ${SRC_DATASET} with ${DST_DATASET} in md5sums file..."
 	sed -i "s|${SRC_DATASET}|${DST_DATASET}|" /tmp/md5-${DST_DATASET}.txt 
 }
+###################################
 
 function check_md5sum_on_remote() {
 	echo "Sending md5sums file to remote system..."
@@ -137,6 +141,7 @@ EOF
 	fi
 	cd $THIS
 }
+###################################
 
 function retrieve_remote_dataset_mountpoint() {
 	echo "Retrieving mountpoint for remote backup system dataset..." 
@@ -334,46 +339,13 @@ else
 	#
 	# Retrieving mountpoint for remote backup system dataset
 	retrieve_remote_dataset_mountpoint
-	#echo "Retrieving mountpoint for remote backup system dataset..." 
-	#DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
-	#RES=$?
-	#if [ ! ${RES} -eq 0 ]; then 
-	#	echo "Error retrieving destination dataset mountpoint: ${RES}"
-	#	[ ${ARE_THERE_DIFFERENCES} == true ] && destroy_snapshot ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
-	#fi 
-	#
-	#DST_BASE=${DB%/*}
-	#echo "Remote backup system dataset mountpoint is: ${DST_BASE}"
 	
 	cd ${SRC_BASE}
 	# Removing temp files
-	if [ -f /tmp/changed-files.txt ]; then
-		echo "Removing old changed files file..."
-		rm /tmp/changed-files.txt
-	else
-		echo "No previous 'changed-files.txt' file to remove."
-	fi
-
-	if [ -f /tmp/deleted-files.txt ]; then
-		echo "Removing old deleted files file..."
-		rm /tmp/deleted-files.txt
-	else
-		echo "No previous 'deleted-files.txt' file to remove."
-	fi
-
-	if [ -f /tmp/moved-files.txt ]; then
-		echo "Removing old moved files file..."
-		rm /tmp/moved-files.txt
-	else
-		echo "No previous 'moved-files.txt' file to remove."
-	fi
-
-	if [ -f /tmp/md5-$DST_DATASET.txt ]; then 
-		echo "Removing old md5-$DST_DATASET.txt file... "
-		rm /tmp/md5-$DST_DATASET.txt
-	else 
-		echo "No previous md5-$DST_DATASET.txt file to remove."
-	fi
+	[ -f /tmp/changed-files.txt ] && rm /tmp/changed-files.txt
+	[ -f /tmp/deleted-files.txt ] && rm /tmp/deleted-files.txt
+	[ -f /tmp/moved-files.txt ] && rm /tmp/moved-files.txt
+	[ -f /tmp/md5-${DST_DATASET}.txt ] && rm /tmp/md5-${DST_DATASET}
 
 	# check there are at least 2 snapshots: 
 	N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
@@ -384,11 +356,11 @@ else
     fi
 
 	# Finding last snapshot on the backup system 
-	# ssh finzic@r4spi.local zfs list -H  -t snapshot testpool/Test-2 | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 
+	echo "=== Checking snapshot alignment between REMOTE and LOCAL systems:"
 	LAST_SNAPSHOT_DATE_ON_REMOTE=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
-	echo "Last snapshot date on backup system is : ${LAST_SNAPSHOT_DATE_ON_REMOTE}"
+	echo "Last snapshot date on REMOTE system is : ${LAST_SNAPSHOT_DATE_ON_REMOTE}"
 	LAST_SNAPSHOT_DATE_ON_LOCAL=$( zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1  )
-
+	echo "Last snapshot date on LOCAL  system is : ${LAST_SNAPSHOT_DATE_ON_LOCAL}"
 	if [ ${LAST_SNAPSHOT_DATE_ON_REMOTE} == ${LAST_SNAPSHOT_DATE_ON_LOCAL} ]; then
 		REMOTE_ALIGNED_WITH_LOCAL=true
 	else
@@ -413,12 +385,12 @@ else
 			echo "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
 		fi
 	else 
-		echo "There is a snapshot with the same date on $(hostname)." 
+		echo "There is a snapshot with the same date on LOCAL system." 
 	fi
 
 	# From now on, the real 'backup' operation begins.
 
-	# FROM_SNAP is the local snap with date equal to LAST_SNAPSHOT_DATE_ON_REMOTE
+	# FROM_SNAPSHOT is the local snap with date equal to LAST_SNAPSHOT_DATE_ON_REMOTE
 	FROM_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${LAST_SNAPSHOT_DATE_ON_REMOTE}
 	
 	if $DEBUG ; then 
@@ -427,10 +399,8 @@ else
 		echo "==== last snapshot date on server = ${LAST_SNAPSHOT_DATE_ON_LOCAL}"
 	fi
 
-	# now we transfer from FROM_SNAP to CURRENT_LOCAL_SNAPSHOT 
+	# now we transfer to the REMOTE system from FROM_SNAPSHOT to CURRENT_LOCAL_SNAPSHOT 
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
-	## it is equivalent to diff from last snapshot to a new snapshot, so this content will not be recalculated as it can be quite time-consuming.
-	# [[ -f /tmp/diff.txt ]] && rm /tmp/diff.txt 
 	
 	echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_LOCAL_SNAPSHOT}..."
 	sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} > /tmp/diff.txt
@@ -483,13 +453,6 @@ else
 		## calculating md5sum in parallel with eta display: 
 		echo "Calculating md5sums parallelizing 4x..."
 		parallel_md5sum /tmp/changed-files.txt
-		#cat /tmp/changed-files.txt \
-		#	| parallel -j+0 --eta md5sum {} > /tmp/md5-${DST_DATASET}.txt 
-		## Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
-		#echo "Fixing paths in md5sums file..."
-		#sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
-		#echo "Substituting ${SRC_DATASET} with ${DST_DATASET} in md5sums file..."
-		#sed -i "s|${SRC_DATASET}|${DST_DATASET}|" /tmp/md5-${DST_DATASET}.txt 
 
 		if $DEBUG ; then 
 			echo "==== md5sums of changed files:"
@@ -503,7 +466,6 @@ else
 
 		# Calculating size of the increment between first snapshot and second snapshot
 		echo "Calculating data transfer size approximation..."
-		## SIZE=$( compute_size ${PREVIOUS_SNAP} ${CURRENT_SNAP} )
 		SIZE=$( compute_size /tmp/diff.txt )
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
@@ -516,11 +478,9 @@ else
 		if $DEBUG; then 
 			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
 		fi
-		
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
 			| pv -ptebar -s ${PV_SIZE} \
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
-		
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
 			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
@@ -534,34 +494,6 @@ else
 
 		echo "Sending md5sums of modified files to ${DST_ADDR} ..."
 		check_md5sum_on_remote
-		# start
-		THIS=$(pwd)
-		cd ${SRC_PATH}
-
-		scp /tmp/md5-${DST_DATASET}.txt ${DST_USERNAME}@${DST_ADDR}:/tmp/
-
-		cat << EOF > /tmp/check-md5sums.sh
-#!/bin/bash
-cd ${DST_BASE}
-md5sum -c /tmp/md5-${DST_DATASET}.txt
-RES=$?
-# rm /tmp/md5-${DST_DATASET}.txt
-exit ${RES}
-EOF
-
-		ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh
-		EXIT_CODE=$?
-		echo "result = $EXIT_CODE "
-
-		if [ $EXIT_CODE -eq 0 ]
-		then
-			echo "remote md5sum is correct."
-		else
-		    echo "remote md5 check gave error code $EXIT_CODE"
-			exit ${ERR_BAD_MD5_CHECK}
-		fi
-		cd $THIS
-		#end
 	fi
 fi
 echo "Backup operations completed successfully."
