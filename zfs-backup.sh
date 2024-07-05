@@ -451,7 +451,6 @@ else
 		echo "Remote is aligned with local? ${REMOTE_ALIGNED_WITH_LOCAL}"
 		
 		## calculating md5sum in parallel with eta display: 
-		echo "Calculating md5sums parallelizing 4x..."
 		parallel_md5sum /tmp/changed-files.txt
 
 		if $DEBUG ; then 
@@ -474,7 +473,7 @@ else
 		echo "Approximate transfer size is ${PV_SIZE}"
 			  
 		# Sending out the snapshot increment 
-		echo "Sending snapshot"
+		echo "Sending snapshot..."
 		if $DEBUG; then 
 			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
 		fi
@@ -491,8 +490,6 @@ else
 		if $DEBUG ; then 
 			echo "Result of zfs send | zfs recv is: ${RES}"
 		fi
-
-		echo "Sending md5sums of modified files to ${DST_ADDR} ..."
 		check_md5sum_on_remote
 	fi
 fi
