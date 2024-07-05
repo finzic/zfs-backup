@@ -311,6 +311,8 @@ if [ ${RES} -eq 0 ]; then
 			echo "No differences on local system between last snapshot and present situation, so not going to remove any snapshot." 
 		fi
     fi
+	# Need to find DST_BASE for the remote checksum verification
+	retrieve_remote_dataset_mountpoint
 
 	# check all md5sums on remote server
 	check_md5sum_on_remote
