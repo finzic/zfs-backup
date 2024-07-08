@@ -11,4 +11,22 @@ A script and a method for my home personal backup system based on ZFS
 
 ## Example usage
 `./zfs-backup.sh Music` 
-Loads the Music.bkp configuration file, which is something like this: 
+
+Loads the `Music.bkp` configuration file, which is something like this: 
+
+```
+SRC_POOL=zfspool
+SRC_DATASET=Music
+
+DST_POOL=backuppool
+DST_DATASET=Music
+
+DST_USERNAME=remoteuser
+DST_ADDR=raspberry-server.local
+```
+
+This would back up the `zfspool/Music` ZFS dataset to the `backuppool/Music` dataset on `raspberry-server.local` as the user `remoteuser`. 
+
+That's it. 
+
+
