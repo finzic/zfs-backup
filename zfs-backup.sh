@@ -129,7 +129,7 @@ RES=$?
 exit ${RES}
 EOF
 	echo "Checking remote md5sums, please wait..."
-	ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh
+	ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh 2> /dev/null
 	EXIT_CODE=$?
 	echo "result = $EXIT_CODE "
 	if [ $EXIT_CODE -eq 0 ]
@@ -145,7 +145,7 @@ EOF
 
 function retrieve_remote_dataset_mountpoint() {
 	echo "Retrieving mountpoint for remote backup system dataset..." 
-	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}")
+	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET} 2> /dev/null")
 	RES=$?
 	if [ ! ${RES} -eq 0 ]; then 
 		echo "Error retrieving destination dataset mountpoint: ${RES}"
@@ -277,7 +277,7 @@ echo "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
 
 ## Checking if the dataset is already present at the backup server: 
-OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 ) 
+OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 2> /dev/null) 
 echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 if [ ${RES} -eq 0 ]; then 
@@ -304,7 +304,7 @@ if [ ${RES} -eq 0 ]; then
 	## send the snapshots to the backup server
 	## sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
     echo "Sending all dataset to backup system..." 
-	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
+	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -324,7 +324,7 @@ if [ ${RES} -eq 0 ]; then
 
 	# IF previous check is OK, then we set the remote dataset as readonly is necessary for subsequent snapshot sending.
 	echo -n "Setting remote dataset as readonly..." 
-	ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs set readonly=on ${DST_POOL}/${DST_DATASET}
+	ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs set readonly=on ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then
 		echo "... OK"
@@ -357,7 +357,7 @@ else
 
 	# Finding last snapshot on the backup system 
 	echo "=== Checking snapshot alignment between REMOTE and LOCAL systems:"
-	LAST_SNAPSHOT_DATE_ON_REMOTE=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
+	LAST_SNAPSHOT_DATE_ON_REMOTE=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} 2> /dev/null | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
 	echo "Last snapshot date on REMOTE system is : ${LAST_SNAPSHOT_DATE_ON_REMOTE}"
 	LAST_SNAPSHOT_DATE_ON_LOCAL=$( zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1  )
 	echo "Last snapshot date on LOCAL  system is : ${LAST_SNAPSHOT_DATE_ON_LOCAL}"
@@ -476,11 +476,11 @@ else
 		# Sending out the snapshot increment 
 		echo "Sending snapshot..."
 		if $DEBUG; then 
-			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}"
+			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
 			| pv -ptebar -s ${PV_SIZE} \
-			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET}
+			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
 			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
