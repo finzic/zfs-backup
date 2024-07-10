@@ -145,7 +145,7 @@ EOF
 
 function retrieve_remote_dataset_mountpoint() {
 	echo "Retrieving mountpoint for remote backup system dataset..." 
-	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET} 2> /dev/null")
+	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}" 2> /dev/null)
 	RES=$?
 	if [ ! ${RES} -eq 0 ]; then 
 		echo "Error retrieving destination dataset mountpoint: ${RES}"
@@ -345,7 +345,7 @@ else
 	[ -f /tmp/changed-files.txt ] && rm /tmp/changed-files.txt
 	[ -f /tmp/deleted-files.txt ] && rm /tmp/deleted-files.txt
 	[ -f /tmp/moved-files.txt ] && rm /tmp/moved-files.txt
-	[ -f /tmp/md5-${DST_DATASET}.txt ] && rm /tmp/md5-${DST_DATASET}
+	[ -f /tmp/md5-${DST_DATASET}.txt ] && rm /tmp/md5-${DST_DATASET}.txt
 
 	# check there are at least 2 snapshots: 
 	N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
