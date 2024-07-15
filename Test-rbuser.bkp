@@ -2,7 +2,7 @@ SRC_POOL=zfspool
 SRC_DATASET=Test
 
 DST_POOL=testpool
-DST_DATASET=Test-buser
+DST_DATASET=Test-rbuser
 
-DST_USERNAME=finzic
+DST_USERNAME=rbuser
 DST_ADDR=r4spi.local
