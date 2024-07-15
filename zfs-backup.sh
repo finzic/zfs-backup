@@ -302,9 +302,9 @@ if [ ${RES} -eq 0 ]; then
 	echo "Current LOCAL snapshot is ${CURRENT_LOCAL_SNAPSHOT}" 
 
 	## send the snapshots to the backup server
-	## sudo zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local sudo zfs receive testpool/Test-2
+	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
     echo "Sending all dataset to backup system..." 
-	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
+	zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
