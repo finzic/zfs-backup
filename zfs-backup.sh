@@ -278,9 +278,10 @@ echo ""
 
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 2> /dev/null) 
-echo ${OUTPUT} | grep 'dataset does not exist'
+# echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
-if [ ${RES} -eq 0 ]; then 
+# If the SSH statement gives an error in return, then the DST_DATASET is not present in the REMOTE backup system. 
+if [ ${RES} -eq 1 ]; then 
 	# Dataset is NOT present on remote system -> need to transfer it with all snapshots.
 	echo "The dataset ${DST_DATASET} is not present in the REMOTE backup system."
 	echo "Calculating MD5SUMs for all files on the local server - please wait..." 
