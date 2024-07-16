@@ -282,7 +282,7 @@ echo ${OUTPUT} | grep 'dataset does not exist'
 RES=$?
 if [ ${RES} -eq 0 ]; then 
 	# Dataset is NOT present on remote system -> need to transfer it with all snapshots.
-	echo "The dataset ${DST_DATASET} is not present in the remote system."
+	echo "The dataset ${DST_DATASET} is not present in the REMOTE backup system."
 	echo "Calculating MD5SUMs for all files on the local server - please wait..." 
 	cd ${SRC_BASE}
 	# find Test -type f | parallel -j+0 --eta md5sum {} > /tmp/md5-Test-all.tx
@@ -334,7 +334,7 @@ if [ ${RES} -eq 0 ]; then
 	fi
 else 
 	# BIG CASE: ongoing backup, already sent once.
-	echo "The dataset \"${SRC_DATASET}\" is already present in the backup system."
+	echo "The dataset \"${DST_DATASET}\" is already present in the REMOTE backup system."
 	## >> else normal case: 
 	#
 	# Retrieving mountpoint for remote backup system dataset
