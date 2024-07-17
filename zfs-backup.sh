@@ -507,7 +507,9 @@ else
 		if [ ! ${RES} -eq 0 ]; then
 			logmsg "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
 			if [ ${ARE_THERE_DIFFERENCES} == true ]; then 
-			destroy_snapshot ${ERR_ZFS_SEND_RECV}
+				destroy_snapshot ${ERR_ZFS_SEND_RECV}
+			else 
+				exit ${ERR_ZFS_SEND_RCV}
 			fi
 		fi
 		if $DEBUG ; then 
