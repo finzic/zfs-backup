@@ -116,7 +116,7 @@ function parallel_md5sum () {
 ###################################
 
 function check_md5sum_on_remote() {
-	echo "Sending md5sums file to remote system..."
+	logmsg "Sending md5sums file to remote system..."
 	THIS=$(pwd)	
 	cd ${SRC_PATH}
 	scp /tmp/md5-${DST_DATASET}.txt ${DST_USERNAME}@${DST_ADDR}:/tmp/
@@ -128,15 +128,15 @@ RES=$?
 # rm /tmp/md5-${DST_DATASET}.txt
 exit ${RES}
 EOF
-	echo "Checking remote md5sums, please wait..."
+	logmsg "Checking remote md5sums, please wait..."
 	ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh 2> /dev/null
 	EXIT_CODE=$?
 	echo "result = $EXIT_CODE "
 	if [ $EXIT_CODE -eq 0 ]
 	then
-		echo "remote md5sum are correct."
+		logmsg "remote md5sum are correct."
 	else
-	    echo "remote md5 check gave error code $EXIT_CODE"
+	    logmsg "remote md5 check gave error code $EXIT_CODE"
 		exit ${ERR_BAD_MD5_CHECK}
 	fi
 	cd $THIS
@@ -144,7 +144,7 @@ EOF
 ###################################
 
 function retrieve_remote_dataset_mountpoint() {
-	echo "Retrieving mountpoint for remote backup system dataset..." 
+	logmsg "Retrieving mountpoint for remote backup system dataset..." 
 	DB=$(ssh ${DST_USERNAME}@${DST_ADDR} "zfs get -H mountpoint -o value ${DST_POOL}/${DST_DATASET}" 2> /dev/null)
 	RES=$?
 	if [ ! ${RES} -eq 0 ]; then 
@@ -153,7 +153,25 @@ function retrieve_remote_dataset_mountpoint() {
 		exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
 	fi
 	DST_BASE=${DB%/*}
-	echo "Remote backup system dataset mountpoint is: ${DST_BASE}"
+	logmsg "Remote backup system dataset mountpoint is: ${DST_BASE}"
+}
+################################### 
+function  display_backup_configuration(){
+	echo "source base folder      = ${SRC_BASE}"
+	echo "source pool             = ${SRC_POOL}"
+	echo "source dataset          = ${SRC_DATASET}"
+	echo "destination address     = ${DST_ADDR}"
+	echo "destination username    = ${DST_USERNAME}"
+	echo "destination base folder = ${DST_BASE}"
+	echo "destination pool        = ${DST_POOL}"
+	echo "destination dataset     = ${DST_DATASET}"
+	echo "####################################################################################################"
+}
+######################################################################################
+function logmsg(){
+	MSG=$1
+	logger -t zfs-backup -- "${MSG}"
+	echo "${MSG}"
 }
 ######################################################################################
 
@@ -161,10 +179,13 @@ function retrieve_remote_dataset_mountpoint() {
 # Main #
 ########
 
-echo "##################################################"
-echo "### backup script for ZFS pool on $(hostname) server ###"
-echo "##################################################"
 echo ""
+echo "####################################################################################################"
+echo "                 ZFS Backup Script by Luca Finzi Contini - server name = $(hostname)"
+echo "####################################################################################################"
+echo ""
+
+logmsg "Starting Zfs Backup" 
 
 # checking input
 if [ ! $# -eq 1 ]; then 
@@ -220,17 +241,6 @@ SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
 SRC_PATH=${SRC_BASE}/${SRC_DATASET}
 
-# display of initial data: 
-
-echo "source base folder      = ${SRC_BASE}"
-echo "source pool             = ${SRC_POOL}"
-echo "source dataset          = ${SRC_DATASET}"
-echo "destination address     = ${DST_ADDR}"
-echo "destination username    = ${DST_USERNAME}"
-echo "destination base folder = ${DST_BASE}"
-echo "destination pool        = ${DST_POOL}"
-echo "destination dataset     = ${DST_DATASET}"
-echo "======================================================"
 
 # set variables
 ARE_THERE_DIFFERENCES=
@@ -274,7 +284,7 @@ else
 	fi
 fi
 echo ""
-echo "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
+logmsg "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
 
 ## Checking if the dataset is already present at the backup server: 
@@ -284,15 +294,15 @@ RES=$?
 # If the SSH statement gives an error in return, then the DST_DATASET is not present in the REMOTE backup system. 
 if [ ${RES} -eq 1 ]; then 
 	# Dataset is NOT present on remote system -> need to transfer it with all snapshots.
-	echo "The dataset ${DST_DATASET} is not present in the REMOTE backup system."
-	echo "Calculating MD5SUMs for all files on the local server - please wait..." 
+	logmsg "The dataset ${DST_DATASET} is not present in the REMOTE backup system."
+	logmsg "Calculating MD5SUMs for all files on the local server - please wait..." 
 	cd ${SRC_BASE}
 	# find Test -type f | parallel -j+0 --eta md5sum {} > /tmp/md5-Test-all.tx
 	# Delete /tmp/all-files.txt if it exists
 	[ -f /tmp/all-files.txt ] && rm /tmp/all-files.txt 
 	find ${SRC_DATASET} -type f > /tmp/all-files.txt
 	parallel_md5sum /tmp/all-files.txt
-	echo "... MD5SUMs done."
+	logmsg "... MD5SUMs done."
 
 	echo "Preparing to send the whole dataset with all its snapshots..." 
 	## Get size of dataset 
@@ -300,12 +310,12 @@ if [ ${RES} -eq 1 ]; then
 	## retrieve length and convert into something good for PV
 	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
 	PV_SIZE=$(parse_size ${ORIG_SIZE})
-	echo "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${PV_SIZE}" 
+	logmsg "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${PV_SIZE}" 
 	echo "Current LOCAL snapshot is ${CURRENT_LOCAL_SNAPSHOT}" 
 
 	## send the snapshots to the backup server
 	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
-    echo "Sending all dataset to backup system..." 
+    logmsg "Sending all dataset to backup system..." 
 	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
@@ -320,29 +330,35 @@ if [ ${RES} -eq 1 ]; then
 			exit ${ERR_SEND_DATASET}
 		fi
     fi
+	logmsg "Sending all dataset to backup system... Completed"
 	# Need to find DST_BASE for the remote checksum verification
 	retrieve_remote_dataset_mountpoint
+
+	# Show backup configuration
+	display_backup_configuration
 
 	# check all md5sums on remote server
 	check_md5sum_on_remote
 
 	# IF previous check is OK, then we set the remote dataset as readonly is necessary for subsequent snapshot sending.
-	echo -n "Setting remote dataset as readonly..." 
+	logmsg "Setting remote dataset as readonly..." 
 	ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs set readonly=on ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then
-		echo "... OK"
+		logmsg "Remote dataset ${DST_POOL}/${DST_DATASET} set as readonly."
 	else
-		echo "Error setting ${DST_POOL}/${DST_DATASET} as readonly"
+		logmsg "ERROR setting ${DST_POOL}/${DST_DATASET} as readonly"
 		exit ${ERR_SETTING_DST_READONLY}   
 	fi
 else 
 	# BIG CASE: ongoing backup, already sent once.
-	echo "The dataset \"${DST_DATASET}\" is already present in the REMOTE backup system."
+	logmsg "The dataset \"${DST_DATASET}\" is already present in the REMOTE backup system."
 	## >> else normal case: 
 	#
 	# Retrieving mountpoint for remote backup system dataset
 	retrieve_remote_dataset_mountpoint
+
+	display_backup_configuration
 	
 	cd ${SRC_BASE}
 	# Removing temp files
@@ -354,17 +370,17 @@ else
 	# check there are at least 2 snapshots: 
 	N_SNAPS=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | grep ${SRC_DATASET} | tail -n 2 | wc -l)
 	if [ $N_SNAPS -lt 2 ]; then 
-		echo "There are less than 2 snapshots:" 
+		logmsg "There are less than 2 snapshots" 
 		zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} 
 		exit $ERR_LESS_THAN_2_SNAPS
     fi
 
 	# Finding last snapshot on the backup system 
-	echo "=== Checking snapshot alignment between REMOTE and LOCAL systems:"
+	logmsg "=== Checking snapshot alignment between REMOTE and LOCAL systems"
 	LAST_SNAPSHOT_DATE_ON_REMOTE=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -H -t snapshot ${DST_POOL}/${DST_DATASET} 2> /dev/null | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1 )
-	echo "Last snapshot date on REMOTE system is : ${LAST_SNAPSHOT_DATE_ON_REMOTE}"
+	logmsg "Last snapshot date on REMOTE system is : ${LAST_SNAPSHOT_DATE_ON_REMOTE}"
 	LAST_SNAPSHOT_DATE_ON_LOCAL=$( zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' |  sort | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | tail -n 1  )
-	echo "Last snapshot date on LOCAL  system is : ${LAST_SNAPSHOT_DATE_ON_LOCAL}"
+	logmsg "Last snapshot date on LOCAL  system is : ${LAST_SNAPSHOT_DATE_ON_LOCAL}"
 	if [ ${LAST_SNAPSHOT_DATE_ON_REMOTE} == ${LAST_SNAPSHOT_DATE_ON_LOCAL} ]; then
 		REMOTE_ALIGNED_WITH_LOCAL=true
 	else
@@ -373,8 +389,8 @@ else
 
 	# if there are no differences and last snapshot dates are equal, then there is nothing to do -> we exit. 
 	if [ !{ARE_THERE_DIFFERENCES} ] && [ ${REMOTE_ALIGNED_WITH_LOCAL} == true ] ; then
-		echo "No differences have been found; last snapshot date on backup is equal to last snapshot date on server"
-		echo "-> no backup action is needed."
+		logmsg "No differences have been found; last snapshot date on backup is equal to last snapshot date on server"
+		logmsg "-> no backup action is needed."
 		exit 0
 	fi
 
@@ -382,11 +398,11 @@ else
 	RES=$(zfs list -H -t snapshot ${SRC_POOL}/${SRC_DATASET} | awk '{print $1}' | sed "s/^\(.*\)\/\(.*\)@\(.*\)$/\3/" | grep ${LAST_SNAPSHOT_DATE_ON_REMOTE})
 	# if the backup snapshot date is not present locally, we have an inconsistent situation so we bail out. 
 	if [ x${RES} == x ] ||  [ ${RES} != ${LAST_SNAPSHOT_DATE_ON_REMOTE} ]; then 
-		echo "Hmm - remote snapshot ${LAST_SNAPSHOT_DATE_ON_REMOTE} is not present locally... this is a problem."
+		logmsg "Hmm - remote snapshot ${LAST_SNAPSHOT_DATE_ON_REMOTE} is not present locally... this is a problem."
 		if [ ${ARE_THERE_DIFFERENCES} == true ]; then
 			destroy_snapshot ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
 		else
-			echo "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
+			logmsg "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
 		fi
 		exit ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
 	else 
@@ -407,7 +423,7 @@ else
 	# now we transfer to the REMOTE system from FROM_SNAPSHOT to CURRENT_LOCAL_SNAPSHOT 
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
 	
-	echo "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_LOCAL_SNAPSHOT}..."
+	logmsg "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_LOCAL_SNAPSHOT}..."
 	sudo zfs diff -F -H -h ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} > /tmp/diff.txt
     
 	echo "Determining changed files..."
@@ -437,10 +453,10 @@ else
 	MOVED=$(wc -l < /tmp/moved-files.txt)
 	if [ $CHANGES -eq 0 ] && [ $DELETES -eq 0 ] && [ $MOVED -eq 0 ] && [ ${REMOTE_ALIGNED_WITH_LOCAL} == true ]
 	then
-		echo "No changed or deleted files in $SRC_PATH AND backup is aligned with server - nothing to backup" 
+		logmsg "No changed or deleted files in $SRC_PATH AND backup is aligned with server - nothing to backup" 
 	else
 		# >> parallelize md5sum calculation and prepare a file with a list of checksums and files; 
-		echo "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
+		logmsg "There are $CHANGES changed files, $DELETES deleted files and $MOVED moved files." 
 		if $DEBUG ; then 
 			echo "==== Changed files are:"
 			cat /tmp/changed-files.txt
@@ -469,16 +485,16 @@ else
 		fi
 
 		# Calculating size of the increment between first snapshot and second snapshot
-		echo "Calculating data transfer size approximation..."
+		logmsg "Calculating data transfer size approximation..."
 		SIZE=$( compute_size /tmp/diff.txt )
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
 		fi
 		PV_SIZE=$( parse_size ${SIZE} )
-		echo "Approximate transfer size is ${PV_SIZE}"
+		logmsg "Approximate transfer size is ${PV_SIZE}"
 			  
 		# Sending out the snapshot increment 
-		echo "Sending snapshot..."
+		logmsg "Sending snapshot..."
 		if $DEBUG; then 
 			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
@@ -487,7 +503,7 @@ else
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
-			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
+			logmsg "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
 			if [ ${ARE_THERE_DIFFERENCES} == true ]; then 
 			destroy_snapshot ${ERR_ZFS_SEND_RECV}
 			fi
@@ -498,4 +514,4 @@ else
 		check_md5sum_on_remote
 	fi
 fi
-echo "Backup operations completed successfully."
+logmsg "Backup operations completed successfully."
