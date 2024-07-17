@@ -131,7 +131,7 @@ EOF
 	logmsg "Checking remote md5sums, please wait..."
 	ssh ${DST_USERNAME}@${DST_ADDR} "bash -s" < /tmp/check-md5sums.sh 2> /dev/null
 	EXIT_CODE=$?
-	echo "result = $EXIT_CODE "
+	# echo "result = $EXIT_CODE "
 	if [ $EXIT_CODE -eq 0 ]
 	then
 		logmsg "remote md5sum are correct."
