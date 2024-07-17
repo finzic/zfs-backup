@@ -157,12 +157,13 @@ function retrieve_remote_dataset_mountpoint() {
 }
 ################################### 
 function  display_backup_configuration(){
-	echo "source base folder      = ${SRC_BASE}"
+	#echo "source base folder      = ${SRC_BASE}"
 	echo "source pool             = ${SRC_POOL}"
 	echo "source dataset          = ${SRC_DATASET}"
+	echo "---" 
 	echo "destination address     = ${DST_ADDR}"
 	echo "destination username    = ${DST_USERNAME}"
-	echo "destination base folder = ${DST_BASE}"
+	#echo "destination base folder = ${DST_BASE}"
 	echo "destination pool        = ${DST_POOL}"
 	echo "destination dataset     = ${DST_DATASET}"
 	echo "####################################################################################################"
@@ -241,6 +242,7 @@ SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
 SRC_PATH=${SRC_BASE}/${SRC_DATASET}
 
+logmsg "Backing up ${SRC_POOL}/${SRC_DATASET} to remote server ${DST_ADDR} as remote user ${DST_USERNAME} on ${DST_POOL}/${DST_DATASET}"
 
 # set variables
 ARE_THERE_DIFFERENCES=
