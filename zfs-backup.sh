@@ -124,7 +124,7 @@ function check_md5sum_on_remote() {
 #!/bin/bash
 cd ${DST_BASE}
 md5sum -c /tmp/md5-${DST_DATASET}.txt
-RES=$?
+RES="$?"
 # rm /tmp/md5-${DST_DATASET}.txt
 exit ${RES}
 EOF
