@@ -150,6 +150,7 @@ function retrieve_remote_dataset_mountpoint() {
 	if [ ! ${RES} -eq 0 ]; then 
 		echo "Error retrieving destination dataset mountpoint: ${RES}"
 		[ ${ARE_THERE_DIFFERENCES} == true ] && destroy_snapshot ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
+		exit ${ERR_DEST_MOUNTPOINT_RETRIEVAL}
 	fi
 	DST_BASE=${DB%/*}
 	echo "Remote backup system dataset mountpoint is: ${DST_BASE}"
@@ -305,7 +306,7 @@ if [ ${RES} -eq 1 ]; then
 	## send the snapshots to the backup server
 	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
     echo "Sending all dataset to backup system..." 
-	zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
+	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -314,7 +315,9 @@ if [ ${RES} -eq 1 ]; then
 		if [ ${ARE_THERE_DIFFERENCES} == true ] ; then
 			destroy_snapshot ${ERR_SEND_DATASET} 
 		else 
-			echo "No differences on local system between last snapshot and present situation, so not going to remove any snapshot." 
+			echo "No differences on local system, so not going to remove any snapshot." 
+			echo "Exiting..." 
+			exit ${ERR_SEND_DATASET}
 		fi
     fi
 	# Need to find DST_BASE for the remote checksum verification
@@ -477,11 +480,11 @@ else
 		# Sending out the snapshot increment 
 		echo "Sending snapshot..."
 		if $DEBUG; then 
-			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null"
+			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
 			| pv -ptebar -s ${PV_SIZE} \
-			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv ${DST_POOL}/${DST_DATASET} 2> /dev/null
+			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
 			echo "Error in zfs send | zfs recv: ${RES} - destroying snapshot... "
