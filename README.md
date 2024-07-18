@@ -27,6 +27,8 @@ DST_ADDR=raspberry-server.local
 
 This would back up the `zfspool/Music` ZFS dataset to the `backuppool/Music` dataset on `raspberry-server.local` as the user `remoteuser`. 
 
-That's it. 
+## Complete Information 
+Check the project's WIKI! 
+
 
 
