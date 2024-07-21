@@ -271,6 +271,22 @@ logmsg "Backing up ${SRC_POOL}/${SRC_DATASET} to remote server ${DST_ADDR} as re
 ARE_THERE_DIFFERENCES=
 REMOTE_ALIGNED_WITH_LOCAL=
 
+## Get number of local snapshots
+LOCAL_SNAPSHOT_NUMBER=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | wc -l )
+if [ ${LOCAL_SNAPSHOT_NUMBER} -eq 0 ]; then 
+	logger "No local snapshots; creating first one"
+	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
+	FIRST_EVER_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
+	sudo zfs snapshot ${FIRST_EVER_SNAPSHOT}
+	RES=$?
+	if [ ${RES} -eq 0 ]; then 
+		echo "Snapshot performed correctly: ${FIRST_EVER_SNAPSHOT}"
+	else
+		echo "Error: snapshot not performed. Return code: ${RES}"
+		exit ${ERR_SNAPSHOT}
+	fi
+fi
+
 ## Get latest snapshot
 LATEST_LOCAL_SNAPSHOT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}')
 echo "Latest Snapshot is ${LATEST_LOCAL_SNAPSHOT}"
