@@ -354,6 +354,8 @@ if [ ${RES} -eq 0 ]; then
 	echo "There are no local differences -> the latest local snapshot will be considered as current snapshot."
 	ARE_THERE_DIFFERENCES=false 
 	CURRENT_LOCAL_SNAPSHOT=${LATEST_LOCAL_SNAPSHOT}
+	## if the requested operation is just a snapshot, and there is no snapshot to be done, then we are done here, so let's exit. 
+	${DO_SNAP} && logmsg "Snapshot operaton complete" && exit 0
 else 
 	echo "There are differences -> creating a snapshot..."
 	ARE_THERE_DIFFERENCES=true
@@ -366,7 +368,11 @@ else
 	if [ ${RES} -eq 0 ]; then 
 		logmsg "Snapshot performed correctly: ${CURRENT_LOCAL_SNAPSHOT}"
 		## if the user asked only to perform a snapshot, we can exit here with success, otherwise go on.
-		${DO_SNAP} && logmsg "Snapshot operaton complete" && exit 0
+		#${DO_SNAP} && logmsg "Snapshot operaton complete" && exit 0 
+		if ${DO_SNAP} ; then 
+			logmsg "Snapshot operation complete."
+			exit 0
+		fi
 	else
 		echo "Error: snapshot not performed. Return code: ${RES}"
 		exit ${ERR_SNAPSHOT}
