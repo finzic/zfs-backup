@@ -42,21 +42,37 @@ ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY=109
 ##############
 # Functions  #
 ##############
-## usage - description of usate
-function usage() {
-	echo "zfs-backup.sh - a tool for backing up datasets on a remote server"
-	echo "========="
-	echo "usage : zfs.backup.sh <pool_descriptor>"
-	echo ""
-	echo "Pool descriptor file is a text file whose name shall end in '.bkp'. "
-	echo "It contains the following shell variables: "
-	echo "SRC_POOL=<source ZFS pool name> 
-SRC_DATASET=<source dataset name>
-DST_POOL=<destination ZFS pool name>
-DST_DATASET=<destination ZFS dataset name> 
-DST_USERNAME=<destination username>
-DST_ADDR=<destination address>"
+function die () {
+    echo "ERROR: $*. Aborting." >&2
+    usage
+    exit 1
 }
+####################################
+## usage - description of usage
+function usage() {
+	echo "Usage: $(basename $0) [-s | -b ] <Backup_Descriptor> "
+	echo ""
+	echo "	-s : create a snapshot now, if needed, on the local ZFS filesystem described in <Backup_Descriptor>."
+    echo "	-b : launch a backup operation as specified in <Backup_Descriptor>" 
+    echo "	-h : print this message" 
+	echo ""
+	echo "	<Backup_Descriptor> file is a text file whose name shall end in '.bkp'. "
+	echo "	It contains the following shell variables: "
+	echo "		SRC_POOL=<source ZFS pool name>"
+    echo "		SRC_DATASET=<source dataset name>"
+	echo "		DST_POOL=<destination ZFS pool name>"
+    echo "		DST_DATASET=<destination ZFS dataset name> "
+    echo "		DST_USERNAME=<destination username>"
+	echo "		DST_ADDR=<destination address>"
+	echo ""
+}
+###################################
+
+function check_backup_desciptor() {
+	B_D=$1
+	[ ! -f ${B_D}.bkp ] && die "Backup Descriptor ${B_D}.bkp not found." 
+}
+
 ###################################
 ## parse_size - provide a simple modification of the size passed so that it will be integer multiple of K,M,G,T for pv to correctly set max size and progress bar. 
 function parse_size() {
@@ -209,16 +225,67 @@ echo "                 ZFS Backup Script by Luca Finzi Contini - server name = $
 echo "####################################################################################################"
 echo ""
 
-logmsg "Starting Zfs Backup" 
+###  Parameter Parsing
+## No parameters -> usage. 
+[ $# -eq 0 ] && usage && exit 0
+SNAP_OPT="s"
+BACK_OPT="b" 
+DO_SNAP=false
+DO_BACK=false
+while getopts "s:b:h" opt; do
+  case $opt in
+      s ) ${DO_BACK} && die "Cannot specify option '-s' after specifying option '-b'"
+          DO_SNAP=true
+          BACKUP_DESCRIPTOR=$OPTARG
+          echo "B_D=${BACKUP_DESCRIPTOR}" 
+          echo "SNAP_OPT=${SNAP_OPT}"
+          if [[ ${BACKUP_DESCRIPTOR} == "-${BACK_OPT}" ]]  || [[ ${BACKUP_DESCRIPTOR} == "${BACK_OPT}" ]]; then die "cannot specify the two options together"; fi
+          ;;
+      b ) ${DO_SNAP} && die "Cannot specify option '-b' after specifying option '-s'"
+          DO_BACK=true
+          BACKUP_DESCRIPTOR=$OPTARG
+          if [[ ${BACKUP_DESCRIPTOR} == "-${SNAP_OPT}" ]] || [[ ${BACKUP_DESCRIPTOR} == "${SNAP_OPT}" ]] ; then die "cannot specify the two options together"; fi
+          ;;
+      h ) usage
+          exit 1
+          ;;
+      \?) usage
+          die "Invalid option: -$OPTARG. Abort"
+          ;;
+  esac
+done
+shift $(($OPTIND - 1))
 
-# checking input
-if [ ! $# -eq 1 ]; then 
-	usage 
-	exit 1
-fi
-# reading data file with variables that configure the snapshot operation
-DATA_FILE=$1
-source $1.bkp
+## check if the backup descriptor file exists.
+check_backup_desciptor ${BACKUP_DESCRIPTOR}
+# if the file exists, we source it. 
+source ${BACKUP_DESCRIPTOR}.bkp
+
+## checking for sourced variables 
+if [ x${SRC_POOL} = x ]; then 
+	echo "ERROR: No SRC_POOL variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+if [ x${SRC_DATASET} = x ]; then 
+	echo "ERROR: No SRC_DATASET variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+if [ x${DST_POOL} = x ]; then 
+	echo "ERROR: No DST_POOL variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+if [ x${DST_DATASET} = x ]; then 
+	echo "ERROR: No DST_DATASET variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+if [ x${DST_USERNAME} = x ]; then 
+	echo "ERROR: No DST_USERNAME variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
+if [ x${DST_ADDR} = x ]; then 
+	echo "ERROR: No DST_ADDR variable defined"
+	exit ${ERR_BAD_POOL_DESCR}
+fi 
 if $DEBUG ; then 
 	echo "==== SRC_POOL     = ${SRC_POOL}"
 	echo "==== SRC_DATASET  = ${SRC_DATASET}"
@@ -228,44 +295,21 @@ if $DEBUG ; then
 	echo "==== DST_ADDR     = ${DST_ADDR}"
 fi
 
-## checking for sourced variables 
-
-if [ x${SRC_POOL} = x ]; then 
-	echo "ERROR: No SRC_POOL variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
-if [ x${SRC_DATASET} = x ]; then 
-	echo "ERROR: No SRC_DATASET variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
-if [ x${DST_POOL} = x ]; then 
-	echo "ERROR: No DST_POOL variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
-if [ x${DST_DATASET} = x ]; then 
-	echo "ERROR: No DST_DATASET variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
-if [ x${DST_USERNAME} = x ]; then 
-	echo "ERROR: No DST_USERNAME variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
-if [ x${DST_ADDR} = x ]; then 
-	echo "ERROR: No DST_ADDR variable defined"
-	exit ${ERR_BAD_POOL_DESCR}
-fi 
-
 ## COMPUTED VARIABLES
 SB=$(zfs get -H mountpoint -o value ${SRC_POOL}/${SRC_DATASET})
 SRC_BASE=${SB%/*}
 SRC_PATH=${SRC_BASE}/${SRC_DATASET}
 
-logmsg "Backing up ${SRC_POOL}/${SRC_DATASET} to remote server ${DST_ADDR} as remote user ${DST_USERNAME} on ${DST_POOL}/${DST_DATASET}"
+#### SNAPSHOT on LOCAL SERVER ####
+if  ${DO_SNAP} ; then 
+	logmsg "Starting Zfs backup - Snapshot operaton requested." 
+else 
+	logmsg "Starting Zfs Backup - Backup operation requested. " 
+fi
+
+## Print different messages according to the operation requested. 
+${DO_SNAP} && logmsg "Snapshot requested on ${SRC_POOL}/${SRC_DATASET}"
+${DO_BACK} && logmsg "Backing up ${SRC_POOL}/${SRC_DATASET} to remote server ${DST_ADDR} as remote user ${DST_USERNAME} on ${DST_POOL}/${DST_DATASET}"
 
 # set variables
 ARE_THERE_DIFFERENCES=
@@ -285,6 +329,8 @@ if [ ${LOCAL_SNAPSHOT_NUMBER} -eq 0 ]; then
 		echo "Error: snapshot not performed. Return code: ${RES}"
 		exit ${ERR_SNAPSHOT}
 	fi
+	# if we are on the 1st snapshot ever and we are requested a snapshot (DO_SNAP=true) then exit gracefully here
+	${DO_SNAP} && echo "First snapshot ever and simple snapshot requested -> exiting with success" && exit 0 
 fi
 
 ## Get latest snapshot
@@ -312,13 +358,15 @@ else
 	echo "There are differences -> creating a snapshot..."
 	ARE_THERE_DIFFERENCES=true
 	## Performing snapshot to start off.
-	echo "Creating snapshot..."
+	logmst "Creating snapshot..."
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	CURRENT_LOCAL_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 	sudo zfs snapshot ${CURRENT_LOCAL_SNAPSHOT}
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
-		echo "Snapshot performed correctly: ${CURRENT_LOCAL_SNAPSHOT}"
+		logmsg "Snapshot performed correctly: ${CURRENT_LOCAL_SNAPSHOT}"
+		## if the user asked only to perform a snapshot, we can exit here with success, otherwise go on.
+		${DO_SNAP} && logmsg "Snapshot operaton complete" && exit 0
 	else
 		echo "Error: snapshot not performed. Return code: ${RES}"
 		exit ${ERR_SNAPSHOT}
@@ -327,7 +375,8 @@ fi
 echo ""
 logmsg "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
-
+#############################################################################################################
+#############################################################################################################
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 2> /dev/null) 
 # echo ${OUTPUT} | grep 'dataset does not exist'

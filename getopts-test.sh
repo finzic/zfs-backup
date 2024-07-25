@@ -10,11 +10,13 @@ function usage(){
 
 function die () {
     echo "ERROR: $*. Aborting." >&2
+    usage
     exit 1
 }
 
 echo "### getopts test ###" 
 echo "Dollar zero is $0" 
+[ $# -eq 0 ] && usage && exit 0
 SNAP_OPT="s"
 BACK_OPT="b" 
 DO_SNAP=false
