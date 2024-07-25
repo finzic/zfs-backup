@@ -237,8 +237,6 @@ while getopts "s:b:h" opt; do
       s ) ${DO_BACK} && die "Cannot specify option '-s' after specifying option '-b'"
           DO_SNAP=true
           BACKUP_DESCRIPTOR=$OPTARG
-          echo "B_D=${BACKUP_DESCRIPTOR}" 
-          echo "SNAP_OPT=${SNAP_OPT}"
           if [[ ${BACKUP_DESCRIPTOR} == "-${BACK_OPT}" ]]  || [[ ${BACKUP_DESCRIPTOR} == "${BACK_OPT}" ]]; then die "cannot specify the two options together"; fi
           ;;
       b ) ${DO_SNAP} && die "Cannot specify option '-b' after specifying option '-s'"
@@ -360,7 +358,7 @@ else
 	echo "There are differences -> creating a snapshot..."
 	ARE_THERE_DIFFERENCES=true
 	## Performing snapshot to start off.
-	logmst "Creating snapshot..."
+	logmsg "Creating snapshot..."
 	SNAP_TIMESTAMP=$(date +%Y.%m.%d-%H.%M.%S)
 	CURRENT_LOCAL_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${SNAP_TIMESTAMP}
 	sudo zfs snapshot ${CURRENT_LOCAL_SNAPSHOT}
