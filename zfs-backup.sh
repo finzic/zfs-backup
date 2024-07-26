@@ -221,7 +221,7 @@ function logmsg(){
 
 echo ""
 echo "####################################################################################################"
-echo "                 ZFS Backup Script by Luca Finzi Contini - server name = $(hostname)"
+echo "                 ZFS Backup Script - server name = $(hostname)"
 echo "####################################################################################################"
 echo ""
 
