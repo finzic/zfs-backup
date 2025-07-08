@@ -1,0 +1,311 @@
+History for 'zfspool':
+2023-07-24.10:12:57 zpool create -o ashift=12 -f zfspool raidz /dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E /dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE /dev/disk/by-id/ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4
+2023-07-24.10:14:45 zfs set mountpoint=/mnt/raid zfspool
+2023-07-24.10:15:23 zfs create zfspool/Documents
+2023-07-24.10:15:47 zfs set compression=lz4 zfspool/Documents
+2023-07-24.10:17:32 zfs create zfspool/Foto
+2023-07-24.10:17:47 zfs set compression=lz4 zfspool/Foto
+2023-07-24.10:19:18 zfs create zfspool/Music
+2023-07-24.10:19:29 zfs set compression=lz4 zfspool/Music
+2023-07-24.10:20:18 zfs create zfspool/Video
+2023-07-24.10:20:33 zfs set compression=lz4 zfspool/Video
+2023-07-24.10:22:07 zfs create zfspool/Common
+2023-07-24.10:22:34 zfs set compression=lz4 zfspool/Common
+2023-07-24.11:02:47 zfs set recordsize=1M zfspool/Video
+2023-07-24.11:03:00 zfs set recordsize=1M zfspool/Music
+2023-07-24.11:56:46 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-24.19:05:40 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-24.21:52:52 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-24.22:02:12 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-25.00:10:08 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-25.00:33:07 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-25.19:58:51 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-25.20:28:53 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-25.22:24:15 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.00:01:16 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.00:42:23 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.01:00:37 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.17:19:15 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.18:20:10 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-26.18:54:16 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-27.00:48:46 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-27.09:54:54 zpool scrub zfspool
+2023-07-27.22:50:07 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-27.23:05:32 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-28.00:37:41 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-28.22:38:23 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-29.08:31:39 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-29.22:34:15 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.10:26:16 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.10:28:39 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.14:09:56 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.14:15:48 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.21:56:44 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-30.22:01:15 zpool import -c /etc/zfs/zpool.cache -aN
+2023-07-31.23:18:30 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-01.00:00:29 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-01.23:50:50 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.00:05:45 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.00:18:41 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.00:33:45 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.18:23:19 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.18:29:16 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.20:18:29 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-02.21:45:12 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-03.00:13:04 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-03.00:14:40 zpool scrub zfspool
+2023-08-03.23:51:03 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-03.23:58:09 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-04.00:06:56 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-04.18:30:47 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-04.18:34:54 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-07.01:41:27 zpool clear zfspool
+2023-08-07.01:41:50 zpool scrub zfspool
+2023-08-07.10:39:09 zpool clear zfspool
+2023-08-08.00:44:24 zpool scrub zfspool
+2023-08-08.05:28:04 zpool clear zfspool
+2023-08-08.23:54:24 zfs create zfspool/onedrive-copy
+2023-08-10.01:13:37 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-10.01:20:26 zpool scrub zfspool
+2023-08-10.06:57:02 zpool clear zfspool
+2023-08-11.00:19:44 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-11.21:21:21 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-12.00:08:01 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-13.00:24:15 zpool scrub zfspool
+2023-08-14.17:18:59 zfs set xattr=sa zfspool
+2023-08-17.23:04:06 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-26.13:19:18 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.09:14:44 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.09:20:32 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.10:09:55 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.10:29:58 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.11:43:48 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-29.12:54:28 zpool import -c /etc/zfs/zpool.cache -aN
+2023-08-30.18:58:06 zpool import -c /etc/zfs/zpool.cache -aN
+2023-09-03.10:21:04 zpool import -c /etc/zfs/zpool.cache -aN
+2023-09-03.16:10:26 zpool import -c /etc/zfs/zpool.cache -aN
+2023-09-10.00:24:13 zpool scrub zfspool
+2023-09-27.21:02:03 zpool import -c /etc/zfs/zpool.cache -aN
+2023-09-28.07:00:24 zpool scrub zfspool
+2023-10-01.16:42:32 zpool import -c /etc/zfs/zpool.cache -aN
+2023-10-08.00:24:08 zpool scrub zfspool
+2023-11-12.00:24:07 zpool scrub zfspool
+2023-11-20.12:52:57 zpool scrub zfspool
+2023-11-24.19:34:10 zpool import -c /etc/zfs/zpool.cache -aN
+2023-12-09.19:28:41 zpool import -c /etc/zfs/zpool.cache -aN
+2023-12-10.00:24:08 zpool scrub zfspool
+2023-12-18.23:25:48 zpool scrub zfspool
+2023-12-29.11:04:50 zpool import -c /etc/zfs/zpool.cache -aN
+2024-01-14.00:24:07 zpool scrub zfspool
+2024-02-11.00:24:08 zpool scrub zfspool
+2024-02-23.09:23:47 zpool scrub zfspool
+2024-03-10.00:24:08 zpool scrub zfspool
+2024-03-10.18:07:36 zpool import -c /etc/zfs/zpool.cache -aN
+2024-04-10.19:24:23 zpool import -c /etc/zfs/zpool.cache -aN
+2024-04-14.00:24:07 zpool scrub zfspool
+2024-04-15.10:08:13 zpool clear zfspool
+2024-04-15.13:56:42 zpool set autoexpand=on zfspool
+2024-04-18.18:51:32 zpool import -c /etc/zfs/zpool.cache -aN
+2024-04-19.11:30:57 zpool scrub -s zfspool
+2024-04-19.11:38:49 zpool set autoexpand=off zfspool
+2024-04-26.09:27:07 zpool scrub zfspool
+2024-05-12.00:24:02 zpool scrub zfspool
+2024-05-12.12:25:52 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-14.19:51:17 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-15.20:49:00 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-16.10:01:15 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-16.16:31:00 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-16.16:42:56 zpool offline zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE
+2024-05-16.16:44:22 zpool replace zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M6YRK3EE ata-WDC_WD40EFPX-68C6CN0_WD-WX12DA36MAU6
+2024-05-17.19:58:33 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-18.19:18:00 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-18.21:43:18 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-27.23:50:33 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-28.00:07:02 zpool offline zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E
+2024-05-28.00:08:59 zpool replace zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJV8E ata-WDC_WD40EFPX-68C6CN0_WD-WX22D83R1511
+2024-05-28.23:19:29 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-28.23:26:42 zpool offline zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4
+2024-05-28.23:28:49 zpool set autoexpand=on zfspool
+2024-05-28.23:31:07 zpool replace zfspool ata-WDC_WD20EFRX-68EUZN0_WD-WCC4M1EDJVN4 ata-WDC_WD40EFPX-68C6CN0_WD-WX32D93E0F56
+2024-05-29.07:25:58 zpool set autoexpand=off zfspool
+2024-05-29.11:18:50 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-29.19:56:38 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-30.18:44:38 zpool import -c /etc/zfs/zpool.cache -aN
+2024-05-31.23:26:03 zpool import -c /etc/zfs/zpool.cache -aN
+2024-06-02.22:30:25 zfs snapshot zfspool/Common@2024.06.02-22.28.10
+2024-06-03.09:50:44 zfs create zfspool/Test
+2024-06-03.09:56:48 zfs snapshot zfspool/Test@2024.06.03-09.56.26
+2024-06-03.22:40:32 zfs snapshot zfspool/Test@2024.06.03-22.40.32
+2024-06-03.22:42:55 zfs snapshot zfspool/Test@2024.06.03-22.42.54
+2024-06-03.22:44:28 zfs snapshot zfspool/Test@2024.06.03-22.44.28
+2024-06-05.16:55:19 zpool import -c /etc/zfs/zpool.cache -aN
+2024-06-05.17:05:32 zpool import -c /etc/zfs/zpool.cache -aN
+2024-06-06.02:25:49 zfs create zfspool/share
+2024-06-06.02:49:31 zfs snapshot zfspool/Common@2024.06.06-02.49.31
+2024-06-06.02:50:03 zfs snapshot zfspool/Documents@2024.06.06-02.50.03
+2024-06-06.02:50:10 zfs snapshot zfspool/Foto@2024.06.06-02.50.10
+2024-06-06.02:50:15 zfs snapshot zfspool/Music@2024.06.06-02.50.15
+2024-06-06.02:50:23 zfs snapshot zfspool/Video@2024.06.06-02.50.23
+2024-06-06.02:50:33 zfs snapshot zfspool/onedrive-copy@2024.06.06-02.50.32
+2024-06-09.00:24:09 zpool scrub zfspool
+2024-06-16.16:33:39 zfs snapshot zfspool/Foto@2024.06.16-16.33.39
+2024-06-17.16:31:05 zfs destroy zfspool/Test@2024.06.03-22.44.28
+2024-06-17.16:31:24 zfs destroy zfspool/Test@2024.06.03-22.42.54
+2024-06-17.16:31:38 zfs destroy zfspool/Test@2024.06.03-22.40.32
+2024-06-17.16:47:06 zfs snapshot zfspool/Test@2024.06.17-16.47.05
+2024-06-17.16:48:03 zfs snapshot zfspool/Test@2024.06.17-16.48.03
+2024-06-17.16:51:04 zfs destroy zfspool/Test@2024.06.17-16.48.03
+2024-06-17.16:51:12 zfs destroy zfspool/Test@2024.06.17-16.47.05
+2024-06-17.16:51:17 zfs destroy zfspool/Test@2024.06.03-09.56.26
+2024-06-17.16:51:29 zfs snapshot zfspool/Test@2024.06.17-16.51.28
+2024-06-20.15:12:25 zfs destroy zfspool/Test@2024.06.17-16.51.28
+2024-06-20.15:16:30 zfs snapshot zfspool/Test@2024.06.20-15.16.29
+2024-06-20.15:23:41 zfs destroy zfspool/Test@2024.06.20-15.16.29
+2024-06-20.15:24:41 zfs snapshot zfspool/Test@2024.06.20-15.24.40
+2024-06-20.15:33:36 zfs snapshot zfspool/Test@2024.06.20-15.33.05
+2024-06-20.16:07:21 zfs destroy zfspool/Test@2024.06.20-15.33.05
+2024-06-24.01:19:38 zfs snapshot zfspool/Test@2024.06.24-01.19.38
+2024-06-24.01:37:07 zfs destroy zfspool/Test@2024.06.24-01.19.38
+2024-06-24.01:37:17 zfs snapshot zfspool/Test@2024.06.24-01.37.17
+2024-06-24.01:55:00 zfs snapshot zfspool/Test@2024.06.24-01.55.00
+2024-06-24.02:10:27 zfs snapshot zfspool/Test@2024.06.24-02.10.26
+2024-06-24.02:25:31 zfs snapshot zfspool/Test@2024.06.24-02.25.31
+2024-06-24.02:41:00 zfs snapshot zfspool/Foto@2024.06.24-02.40.59
+2024-06-24.02:46:21 zfs snapshot zfspool/Music@2024.06.24-02.46.21
+2024-06-24.02:50:03 zfs destroy zfspool/Music@2024.06.24-02.46.21
+2024-06-24.02:50:28 zfs snapshot zfspool/Music@2024.06.24-02.50.28
+2024-06-24.02:54:00 zfs snapshot zfspool/Documents@2024.06.24-02.53.59
+2024-06-24.02:55:34 zfs destroy zfspool/Documents@2024.06.24-02.53.59
+2024-06-24.02:56:52 zfs snapshot zfspool/Documents@2024.06.24-02.56.51
+2024-06-24.02:58:58 zfs destroy zfspool/Documents@2024.06.24-02.56.51
+2024-06-24.02:59:16 zfs snapshot zfspool/Documents@2024.06.24-02.59.16
+2024-06-24.03:00:31 zfs destroy zfspool/Documents@2024.06.24-02.59.16
+2024-06-24.03:00:39 zfs snapshot zfspool/Documents@2024.06.24-03.00.39
+2024-06-24.03:01:33 zfs destroy zfspool/Documents@2024.06.24-03.00.39
+2024-06-24.03:03:15 zfs snapshot zfspool/Documents@2024.06.24-03.03.14
+2024-06-25.01:37:00 zfs snapshot zfspool/Test@2024.06.25-01.36.59
+2024-06-25.01:39:30 zfs destroy zfspool/Test@2024.06.25-01.36.59
+2024-06-25.01:45:15 zfs snapshot zfspool/Test@2024.06.25-01.45.15
+2024-06-25.01:45:53 zfs destroy zfspool/Test@2024.06.25-01.45.15
+2024-06-25.01:53:22 zfs snapshot zfspool/Test@2024.06.25-01.53.22
+2024-06-25.02:02:47 zfs destroy zfspool/Test@2024.06.25-01.53.22
+2024-06-25.02:04:47 zfs snapshot zfspool/Test@2024.06.25-02.04.47
+2024-06-25.02:08:08 zfs snapshot zfspool/Test@2024.06.25-02.08.08
+2024-06-25.02:09:49 zfs destroy zfspool/Test@2024.06.25-02.08.08
+2024-06-25.02:29:32 zfs snapshot zfspool/Test@2024.06.25-02.29.32
+2024-06-25.02:37:53 zfs destroy zfspool/Test@2024.06.25-02.29.32
+2024-06-25.03:01:15 zfs snapshot zfspool/Test@2024.06.25-03.01.15
+2024-06-26.03:15:21 zfs snapshot zfspool/Test@2024.06.26-03.15.21
+2024-06-26.03:24:06 zfs snapshot zfspool/Documents@2024.06.26-03.24.06
+2024-06-26.03:34:48 zfs snapshot zfspool/Video@2024.06.26-03.34.48
+2024-06-26.03:37:30 zfs destroy zfspool/Video@2024.06.26-03.34.48
+2024-06-26.03:45:49 zfs snapshot zfspool/Video@2024.06.26-03.45.49
+2024-06-26.12:24:05 zpool scrub zfspool
+2024-06-26.22:16:13 zfs destroy zfspool/Documents@2024.06.26-03.24.06
+2024-06-26.22:20:35 zfs snapshot zfspool/Documents@2024.06.26-22.20.12
+2024-06-26.22:23:22 zfs destroy zfspool/Documents@2024.06.26-22.20.12
+2024-06-26.22:38:42 zfs snapshot zfspool/Documents@2024.06.26-22.38.42
+2024-06-26.22:42:07 zfs destroy zfspool/Video@2024.06.26-03.45.49
+2024-06-26.22:50:49 zfs snapshot zfspool/Video@2024.06.26-22.50.48
+2024-06-27.10:05:05 zfs snapshot zfspool/Foto@2024.06.27-10.05.05
+2024-06-27.10:43:07 zfs snapshot zfspool/Test@2024.06.27-10.43.07
+2024-06-27.22:21:49 zfs snapshot zfspool/Foto@2024.06.27-22.21.48
+2024-06-28.19:00:07 zfs snapshot zfspool/Documents@2024.06.28-19.00.07
+2024-06-28.19:15:00 zfs snapshot zfspool/Foto@2024.06.28-19.15.00
+2024-07-02.14:41:27 zfs send -R zfspool/Test@2024.06.27-10.43.07
+2024-07-02.15:12:05 zfs send -R zfspool/Test@2024.06.27-10.43.07
+2024-07-03.13:15:21 zfs snapshot zfspool/Documents@prova
+2024-07-03.13:17:21 zfs destroy zfspool/Documents@prova
+2024-07-03.13:38:50 zfs snapshot zfspool/Test@2024.07.03-13.38.50
+2024-07-03.13:41:48 zfs send -R zfspool/Test@2024.07.03-13.38.50
+2024-07-03.13:46:04 zfs snapshot zfspool/Test@2024.07.03-13.46.03
+2024-07-03.13:51:01 zfs destroy zfspool/Test@2024.07.03-13.46.03
+2024-07-03.14:00:21 zfs snapshot zfspool/Test@2024.07.03-14.00.21
+2024-07-03.14:09:06 zfs destroy zfspool/Test@2024.07.03-14.00.21
+2024-07-03.14:10:05 zfs snapshot zfspool/Test@2024.07.03-14.10.05
+2024-07-03.14:10:38 zfs snapshot zfspool/Test@2024.07.03-14.10.38
+2024-07-03.14:10:39 zfs destroy zfspool/Test@2024.07.03-14.10.38
+2024-07-03.16:50:54 zfs send -I zfspool/Test@2024.06.25-02.04.47 zfspool/Test@2024.07.03-14.10.05
+2024-07-03.16:56:26 zfs send -R -I zfspool/Test@2024.06.20-15.24.40 zfspool/Test@2024.07.03-14.10.05
+2024-07-04.00:53:19 zfs snapshot zfspool/Test@2024.07.04-00.53.19
+2024-07-04.00:53:40 zfs destroy zfspool/Test@2024.07.04-00.53.19
+2024-07-04.00:57:07 zfs snapshot zfspool/Test@2024.07.04-00.57.07
+2024-07-04.00:59:46 zfs destroy zfspool/Test@2024.07.04-00.57.07
+2024-07-04.00:59:50 zfs snapshot zfspool/Test@2024.07.04-00.59.50
+2024-07-04.01:02:30 zfs destroy zfspool/Test@2024.07.04-00.59.50
+2024-07-04.01:04:41 zfs snapshot zfspool/Test@2024.07.04-01.04.40
+2024-07-04.01:05:58 zfs send -I zfspool/Test@2024.06.24-02.25.31 zfspool/Test@2024.07.04-01.04.40
+2024-07-04.01:23:16 zfs destroy zfspool/Test@2024.07.04-01.04.40
+2024-07-04.01:23:58 zfs rollback zfspool/Test@2024.07.03-14.10.05
+2024-07-04.01:25:25 zfs snapshot zfspool/Test@2024.07.04-01.25.25
+2024-07-04.01:25:27 zfs destroy zfspool/Test@2024.07.04-01.25.25
+2024-07-04.01:26:49 zfs snapshot zfspool/Test@2024.07.04-01.26.49
+2024-07-04.01:26:51 zfs destroy zfspool/Test@2024.07.04-01.26.49
+2024-07-04.01:34:08 zfs snapshot zfspool/Test@2024.07.04-01.34.08
+2024-07-04.01:34:13 zfs send -I zfspool/Test@2024.07.03-14.10.05 zfspool/Test@2024.07.04-01.34.08
+2024-07-04.01:36:12 zfs snapshot zfspool/Test@2024.07.04-01.36.12
+2024-07-04.01:36:17 zfs send -I zfspool/Test@2024.07.03-14.10.05 zfspool/Test@2024.07.04-01.36.12
+2024-07-04.01:37:09 zfs snapshot zfspool/Documents@2024.07.04-01.37.08
+2024-07-04.01:38:41 zfs send -I zfspool/Documents@2024.06.28-19.00.07 zfspool/Documents@2024.07.04-01.37.08
+2024-07-04.01:40:12 zfs snapshot zfspool/Video@2024.07.04-01.40.12
+2024-07-04.01:40:18 zfs destroy zfspool/Video@2024.07.04-01.40.12
+2024-07-04.01:41:13 zfs snapshot zfspool/Music@2024.07.04-01.41.12
+2024-07-04.01:41:37 zfs destroy zfspool/Music@2024.07.04-01.41.12
+2024-07-04.01:43:01 zfs snapshot zfspool/Documents@2024.07.04-01.43.00
+2024-07-04.02:25:19 zfs send -R zfspool/Documents@2024.07.04-01.43.00
+2024-07-05.01:35:13 zfs send -I zfspool/Test@2024.06.27-10.43.07 zfspool/Test@2024.07.04-01.36.12
+2024-07-05.01:43:15 zfs send -I zfspool/Test@2024.06.26-03.15.21 zfspool/Test@2024.07.04-01.36.12
+2024-07-05.01:45:43 zfs snapshot zfspool/Test@2024.07.05-01.45.43
+2024-07-05.01:45:46 zfs send -I zfspool/Test@2024.07.04-01.36.12 zfspool/Test@2024.07.05-01.45.43
+2024-07-05.01:47:47 zfs snapshot zfspool/Test@2024.07.05-01.47.47
+2024-07-05.01:47:52 zfs destroy zfspool/Test@2024.07.05-01.47.47
+2024-07-05.01:48:39 zfs snapshot zfspool/Test@2024.07.05-01.48.38
+2024-07-05.01:48:54 zfs send -I zfspool/Test@2024.07.04-01.34.08 zfspool/Test@2024.07.05-01.48.38
+2024-07-05.23:44:50 zfs send -R zfspool/Test@2024.07.05-01.48.38
+2024-07-05.23:49:58 zfs send -R zfspool/Test@2024.07.05-01.48.38
+2024-07-05.23:58:45 zfs snapshot zfspool/Test@2024.07.05-23.58.45
+2024-07-06.00:02:37 zfs send -R zfspool/Test@2024.07.05-23.58.45
+2024-07-06.00:21:14 zfs snapshot zfspool/Test@2024.07.06-00.21.14
+2024-07-06.00:21:36 zfs send -I zfspool/Test@2024.07.03-14.10.05 zfspool/Test@2024.07.06-00.21.14
+2024-07-06.00:45:57 zfs snapshot zfspool/Test@2024.07.06-00.45.57
+2024-07-06.00:47:18 zfs send -I zfspool/Test@2024.06.24-02.25.31 zfspool/Test@2024.07.06-00.45.57
+2024-07-06.00:49:07 zfs snapshot zfspool/Foto@2024.07.06-00.49.07
+2024-07-06.00:49:33 zfs send -I zfspool/Foto@2024.06.28-19.15.00 zfspool/Foto@2024.07.06-00.49.07
+2024-07-06.01:04:21 zfs send -I zfspool/Documents@2024.07.04-01.37.08 zfspool/Documents@2024.07.04-01.43.00
+2024-07-06.01:07:01 zfs destroy zfspool/Documents@2024.07.04-01.43.00
+2024-07-06.01:07:19 zfs rollback zfspool/Documents@2024.07.04-01.37.08
+2024-07-06.02:23:57 zfs send -R zfspool/Documents@2024.07.04-01.37.08
+2024-07-06.19:38:09 zfs snapshot zfspool/Video@2024.07.06-19.38.08
+2024-07-06.19:40:48 zfs send -I zfspool/Video@2024.06.26-22.50.48 zfspool/Video@2024.07.06-19.38.08
+2024-07-08.00:11:41 zfs snapshot zfspool/Video@2024.07.08-00.11.41
+2024-07-08.00:13:13 zfs send -I zfspool/Video@2024.07.06-19.38.08 zfspool/Video@2024.07.08-00.11.41
+2024-07-10.01:49:23 zfs snapshot zfspool/Documents@2024.07.10-01.49.23
+2024-07-10.01:54:07 zfs send -I zfspool/Documents@2024.07.04-01.37.08 zfspool/Documents@2024.07.10-01.49.23
+2024-07-12.08:19:21 zfs allow finzic snapshot zfspool/Test
+2024-07-12.08:19:46 zfs allow finzic destroy zfspool/Test
+2024-07-12.08:19:51 zfs allow finzic send zfspool/Test
+2024-07-12.08:19:56 zfs allow finzic diff zfspool/Test
+2024-07-13.07:51:36 zfs allow buser send zfspool/Test
+2024-07-13.07:51:42 zfs allow buser diff zfspool/Test
+2024-07-13.07:51:47 zfs allow buser snapshot zfspool/Test
+2024-07-13.07:52:19 zfs allow buser destroy zfspool/Test
+2024-07-14.00:24:08 zpool scrub zfspool
+2024-07-16.14:19:19 zfs allow -u buser hold zfspool/Test
+2024-07-17.09:55:09 zfs send -R zfspool/Test@2024.07.06-00.45.57
+2024-07-17.10:02:58 zfs send -R zfspool/Test@2024.07.06-00.45.57
+2024-07-17.17:32:53 zfs send -R zfspool/Test@2024.07.06-00.45.57
+2024-07-17.18:07:18 zfs send -R zfspool/Test@2024.07.06-00.45.57
+2024-07-17.18:13:46 zfs send -R zfspool/Test@2024.07.06-00.45.57
+2024-07-17.18:18:03 zfs snapshot zfspool/Test@2024.07.17-18.18.03
+2024-07-17.18:18:35 zfs send -I zfspool/Test@2024.07.05-01.45.43 zfspool/Test@2024.07.17-18.18.03
+2024-07-17.18:23:43 zfs snapshot zfspool/Documents@2024.07.17-18.23.43
+2024-07-17.18:26:07 zfs send -I zfspool/Documents@2024.07.10-01.49.23 zfspool/Documents@2024.07.17-18.23.43
+2024-07-17.18:29:47 zfs snapshot zfspool/Foto@2024.07.17-18.29.47
+2024-07-17.18:30:03 zfs send -I zfspool/Foto@2024.07.06-00.49.07 zfspool/Foto@2024.07.17-18.29.47
+2024-07-17.19:35:17 zfs send -I zfspool/Documents@2024.07.04-01.37.08 zfspool/Documents@2024.07.17-18.23.43
+2024-07-18.11:12:46 zfs snapshot zfspool/Foto@2024.07.18-11.12.46
+2024-07-18.11:16:29 zfs send -I zfspool/Foto@2024.07.17-18.29.47 zfspool/Foto@2024.07.18-11.12.46
+2024-07-18.23:09:59 zfs snapshot zfspool/Foto@2024.07.18-23.09.59
+2024-07-19.02:13:25 zfs send -R zfspool/Foto@2024.07.18-23.09.59
+2024-07-19.07:01:09 zfs send -I zfspool/Foto@2024.07.18-11.12.46 zfspool/Foto@2024.07.18-23.09.59
+
