@@ -1,9 +1,8 @@
 SRC_POOL=zfspool
-SRC_DATASET=Common
+SRC_DATASET=Documents_optimized
 
 DST_POOL=backuppool
-DST_DATASET=Common
+DST_DATASET=Documents_optimized
 
 DST_USERNAME=buser
 DST_ADDR=backup.local
-
