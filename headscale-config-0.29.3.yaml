@@ -1,0 +1,71 @@
+server_url: "https://hs.yourdomain.com:8443"
+
+# Keep listener ports distinct to avoid bind conflicts.
+listen_addr: "0.0.0.0:8080"
+metrics_listen_addr: "127.0.0.1:9090"
+grpc_listen_addr: "127.0.0.1:50443"
+grpc_allow_insecure: true
+trusted_proxies: []
+
+private_key_path: "/var/lib/headscale/private.key"
+noise:
+  private_key_path: "/var/lib/headscale/noise_private.key"
+
+prefixes:
+  v4: "100.64.0.0/10"
+  v6: "fd7a:115c:a1e0::/48"
+  allocation: sequential
+
+derp:
+  server:
+    enabled: false
+  urls:
+    - "https://controlplane.tailscale.com/derpmap/default"
+  paths: []
+  auto_update_enabled: true
+  update_frequency: "24h"
+
+database:
+  type: sqlite
+  sqlite:
+    path: "/var/lib/headscale/db.sqlite"
+    write_ahead_log: true
+
+disable_check_updates: false
+
+log:
+  level: info
+  format: text
+
+policy:
+  mode: file
+  path: ""
+
+dns:
+  magic_dns: true
+  base_domain: "headnet.internal"
+  override_local_dns: true
+  nameservers:
+    global:
+      - "1.1.1.1"
+      - "1.0.0.1"
+      - "2606:4700:4700::1111"
+      - "2606:4700:4700::1001"
+    split: {}
+  search_domains: []
+  extra_records: []
+
+unix_socket: "/var/run/headscale/headscale.sock"
+unix_socket_permission: "0770"
+
+oidc:
+  only_start_if_oidc_is_available: false
+
+logtail:
+  enabled: false
+
+taildrop:
+  enabled: true
+
+auto_update:
+  enabled: false
