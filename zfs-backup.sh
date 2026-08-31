@@ -144,13 +144,17 @@ function parallel_md5sum () {
 	## calculating md5sum in parallel with eta display: 
 	echo "Calculating md5sums parallelizing 4x..."
 	# LIST_OF_FILES = /tmp/changed-files.txt or /tmp/all-files.txt
-	cat ${LIST_OF_FILES} \
+	if [[ -f /tmp/md5-${DST_DATASET}.txt ]]; then
+		echo "File /tmp/md5-${DST_DATASET}.txt already present - not recalculating md5sums."
+	else
+		cat ${LIST_OF_FILES} \
 		| parallel -j+0 --eta md5sum {} > /tmp/md5-${DST_DATASET}.txt 
-	# Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
-	echo "Fixing paths in md5sums file..."
-	sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
-	echo "Substituting ${SRC_DATASET} with ${DST_DATASET} in md5sums file..."
-	sed -i "s|${SRC_DATASET}|${DST_DATASET}|" /tmp/md5-${DST_DATASET}.txt 
+		# Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
+		echo "Fixing paths in md5sums file..."
+		sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
+		echo "Substituting ${SRC_DATASET} with ${DST_DATASET} in md5sums file..."
+		sed -i "s|${SRC_DATASET}|${DST_DATASET}|" /tmp/md5-${DST_DATASET}.txt
+	fi
 }
 ###################################
 
