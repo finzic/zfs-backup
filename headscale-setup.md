@@ -729,3 +729,19 @@ headscale nodes expire --identifier <ID>
 # View routes
 headscale routes list
 ```
+
+---
+## Installation on Windows 11
+Headscale uses the standard Tailscale client software — there's no separate 'headscale client'. Download and install Tailscale for Windows from tailscale.com/download (or via winget: `winget install tailscale.tailscale`).
+
+Point the client at your Headscale server
+By default Tailscale connects to Tailscale's own coordination server, so you need to redirect it to yours. Open PowerShell as Administrator and run: `tailscale up --login-server https://your-headscale-domain.tld` Replace the URL with the actual address where your Headscale instance is reachable (the Caddy-fronted URL, per your setup).
+
+Authenticate the node
+The command will print a login URL, or (more commonly for self-hosted setups) tell you to run a `headscale nodes register` command on the server side. On your Headscale server, run something like: `headscale nodes register --user <your-user> --key <nodekey-from-client-output>` Once registered, the Windows PC shows up as an approved node in `headscale nodes list`.
+
+Verify connectivity
+Run `tailscale status` on the Windows PC to confirm it's connected and can see other nodes, including backup-dest. Then try `ping backup-dest.headnet.internal` or the equivalent MagicDNS name you've configured.
+
+Apply the same configuration in the wiki for 'remote SAMBA'to benefit from all the features it already has for a local backup server. 
+
