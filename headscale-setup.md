@@ -513,6 +513,11 @@ tailscale up \
 ```
 
 This prints a registration URL. Register it on the headscale server:
+if you click on the link, you'll be redirected to  the website of headscale (on hs.yourdomain.com) andit will print something like this: 
+
+headscale auth register --auth-id hskey-authreq-L6LyW4GMmieRzWhpCJHfqiYD --user USERNAME
+
+where USERNAME shall be set to the username of the tailnet, e.g. backup-net.
 
 ```bash
 # On headscale LXC — approve the node
