@@ -122,6 +122,31 @@ function compute_size() {
 	| awk '{print $1}'
 
 }
+##################################
+## compute_size_written
+function compute_size_written() {
+    local dataset="$1"
+    local from_snap="$2"
+    local current_snap="$3"
+    local total=0
+    local counting=0
+
+    while read -r snap; do
+        if [ "$snap" = "$from_snap" ]; then
+            counting=1
+            continue
+        fi
+        if [ "$counting" -eq 1 ]; then
+            w=$(zfs get -Hp -o value written "${dataset}@${snap}")
+            total=$((total + w))
+            [ "$snap" = "$current_snap" ] && break
+        fi
+    done < <(zfs list -t snapshot -H -o name -S creation "$dataset" | tac | sed "s|^${dataset}@||")
+
+    echo "$total"
+}
+
+## Examplecompute_size_written "pool/dataset" "${FROM_SNAPSHOT}" "${CURRENT_LOCAL_SNAPSHOT}"
 ###################################
 
 function destroy_snapshot() {
@@ -148,7 +173,7 @@ function parallel_md5sum () {
 		echo "File /tmp/md5-${DST_DATASET}.txt already present - not recalculating md5sums."
 	else
 		cat ${LIST_OF_FILES} \
-		| parallel -j+0 --eta md5sum {} > /tmp/md5-${DST_DATASET}.txt 
+		| parallel -j2 --eta b3sum {} > /tmp/md5-${DST_DATASET}.txt 
 		# Need to remove '${SRC_BASE}/' from paths in md5 file because ${DST_BASE} might be different. 
 		echo "Fixing paths in md5sums file..."
 		sed -i "s|${SRC_BASE}/||" /tmp/md5-${DST_DATASET}.txt
@@ -166,7 +191,7 @@ function check_md5sum_on_remote() {
 	cat << EOF > /tmp/check-md5sums.sh
 #!/bin/bash
 cd ${DST_BASE}
-md5sum -c /tmp/md5-${DST_DATASET}.txt
+b3sum -c /tmp/md5-${DST_DATASET}.txt
 RES="$?"
 # rm /tmp/md5-${DST_DATASET}.txt
 exit ${RES}
@@ -407,7 +432,7 @@ if [ ${RES} -eq 1 ]; then
 	OUTPUT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1)
 	## retrieve length and convert into something good for PV
 	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
-	PV_SIZE=$(parse_size ${ORIG_SIZE})
+	PV_SIZE=$( parse_size ${ORIG_SIZE})
 	logmsg "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${PV_SIZE}" 
 	echo "Current LOCAL snapshot is ${CURRENT_LOCAL_SNAPSHOT}" 
 
@@ -585,10 +610,11 @@ else
 		# Calculating size of the increment between first snapshot and second snapshot
 		logmsg "Calculating data transfer size approximation..."
 		SIZE=$( compute_size /tmp/diff.txt )
+                SIZE_WRITTEN=$( compute_size_written  ${SRC_POOL}/${SRC_DATASET} ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT}
 		if $DEBUG ; then
 			echo "==== Computed size is $SIZE" 
 		fi
-		PV_SIZE=$( parse_size ${SIZE} )
+		PV_SIZE=$( parse_size ${SIZE_WRITTEN} )
 		logmsg "Approximate transfer size is ${PV_SIZE}"
 			  
 		# Sending out the snapshot increment 
