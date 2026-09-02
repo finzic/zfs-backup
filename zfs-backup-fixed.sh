@@ -269,7 +269,7 @@ function configure_rate_limit() {
 	fi
 
 	rate_calculation
-	PV_RATE_ARGS=(-8 -L "${PV_RATE_BYTES}")
+	PV_RATE_ARGS=(-L "${PV_RATE_BYTES}")
 	logmsg "Applying a ${RATE} Mbps bandwidth throttle to ${RATE_LIMIT_INTERFACE}."
 	if sudo tc qdisc add dev "${RATE_LIMIT_INTERFACE}" root tbf rate "${RATE}"mbit burst 32kbit latency 400ms; then
 		RATE_LIMIT_APPLIED=true
@@ -502,7 +502,7 @@ if [ "${RES}" -eq 1 ]; then
 	## send the snapshots to the backup server
 	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
     logmsg "Sending all dataset to backup system..." 
-	sudo zfs send -R "${CURRENT_LOCAL_SNAPSHOT}" | pv -ptebar -s "${ORIG_SIZE_BYTES}" "${PV_RATE_ARGS[@]}" | ssh "${DST_USERNAME}@${DST_ADDR}" sudo zfs recv -v "${DST_POOL}/${DST_DATASET}"
+	sudo zfs send -R "${CURRENT_LOCAL_SNAPSHOT}" | pv -pteba -s "${ORIG_SIZE_BYTES}" "${PV_RATE_ARGS[@]}" | ssh "${DST_USERNAME}@${DST_ADDR}" sudo zfs recv -v "${DST_POOL}/${DST_DATASET}"
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -688,10 +688,10 @@ else
 		# Sending out the snapshot increment 
 		logmsg "Sending snapshot..."
 		if $DEBUG; then 
-			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${SIZE_WRITTEN_BYTES} ${PV_RATE_ARGS[*]} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
+			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -pteba -s ${SIZE_WRITTEN_BYTES} ${PV_RATE_ARGS[*]} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
-			| pv -ptebar -s ${SIZE_WRITTEN_BYTES} "${PV_RATE_ARGS[@]}" \
+			| pv -pteba -s ${SIZE_WRITTEN_BYTES} "${PV_RATE_ARGS[@]}" \
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
