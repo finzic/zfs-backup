@@ -232,13 +232,6 @@ function rate_calculation {
 	logmsg "Measured Mbps = ${MEASURED_MBPS} Mbps; Rate used = ${RATE} Mbps"
 }
 
-function remove_rate_limit() {
-	if [ "${RATE_LIMIT_APPLIED}" = true ]; then
-		logmsg "Removing bandwidth throttle from ${RATE_LIMIT_INTERFACE}..."
-		sudo tc qdisc del dev "${RATE_LIMIT_INTERFACE}" root
-	fi
-}
-
 function configure_rate_limit() {
 	if [ -z "${BW_PERCENT:-}" ]; then
 		logmsg "Bandwidth throttling is disabled."
@@ -254,28 +247,9 @@ function configure_rate_limit() {
 		return
 	fi
 
-	RATE_LIMIT_HOST=$(ssh -G "${DST_ADDR}" 2> /dev/null | awk '$1 == "hostname" { print $2; exit }')
-	RATE_LIMIT_DESTINATION=$(getent ahostsv4 "${RATE_LIMIT_HOST:-$DST_ADDR}" | awk 'NR == 1 { print $1 }')
-	if [ -z "${RATE_LIMIT_DESTINATION}" ]; then
-		RATE_LIMIT_DESTINATION=$(getent hosts "${RATE_LIMIT_HOST:-$DST_ADDR}" | awk 'NR == 1 { print $1 }')
-	fi
-	if [ -z "${RATE_LIMIT_DESTINATION}" ]; then
-		die "Could not resolve ${RATE_LIMIT_HOST:-$DST_ADDR} to an IP address for bandwidth throttling"
-	fi
-
-	RATE_LIMIT_INTERFACE=$(ip route get "${RATE_LIMIT_DESTINATION}" | awk '{for (field = 1; field <= NF; field++) if ($field == "dev") { print $(field + 1); exit }}')
-	if [ -z "${RATE_LIMIT_INTERFACE}" ]; then
-		die "Could not determine the route interface for ${DST_ADDR}"
-	fi
-
 	rate_calculation
 	PV_RATE_ARGS=(-L "${PV_RATE_BYTES}")
-	logmsg "Applying a ${RATE} Mbps bandwidth throttle to ${RATE_LIMIT_INTERFACE}."
-	if sudo tc qdisc add dev "${RATE_LIMIT_INTERFACE}" root tbf rate "${RATE}"mbit burst 32kbit latency 400ms; then
-		RATE_LIMIT_APPLIED=true
-	else
-		die "Could not apply bandwidth throttle to ${RATE_LIMIT_INTERFACE}"
-	fi
+	logmsg "Limiting only the ZFS transfer to ${RATE} Mbps."
 }
 
 function  display_backup_configuration(){
@@ -396,8 +370,6 @@ ${DO_BACK} && logmsg "Backing up ${SRC_POOL}/${SRC_DATASET} to remote server ${D
 # set variables
 ARE_THERE_DIFFERENCES=
 REMOTE_ALIGNED_WITH_LOCAL=
-RATE_LIMIT_APPLIED=false
-RATE_LIMIT_INTERFACE=
 PV_RATE_ARGS=()
 
 ## Get number of local snapshots
@@ -468,9 +440,8 @@ echo ""
 logmsg "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
 #############################################################################################################
-# Configure bandwidth throttling when requested by the backup descriptor.
+# Configure the per-transfer bandwidth limit when requested by the backup descriptor.
 configure_rate_limit
-trap remove_rate_limit EXIT
 
 #############################################################################################################
 ## Checking if the dataset is already present at the backup server: 
