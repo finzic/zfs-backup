@@ -256,7 +256,10 @@ function configure_rate_limit() {
 	RATE_LIMIT_HOST=$(ssh -G "${DST_ADDR}" 2> /dev/null | awk '$1 == "hostname" { print $2; exit }')
 	RATE_LIMIT_DESTINATION=$(getent ahostsv4 "${RATE_LIMIT_HOST:-$DST_ADDR}" | awk 'NR == 1 { print $1 }')
 	if [ -z "${RATE_LIMIT_DESTINATION}" ]; then
-		die "Could not resolve ${RATE_LIMIT_HOST:-$DST_ADDR} to an IPv4 address for bandwidth throttling"
+		RATE_LIMIT_DESTINATION=$(getent hosts "${RATE_LIMIT_HOST:-$DST_ADDR}" | awk 'NR == 1 { print $1 }')
+	fi
+	if [ -z "${RATE_LIMIT_DESTINATION}" ]; then
+		die "Could not resolve ${RATE_LIMIT_HOST:-$DST_ADDR} to an IP address for bandwidth throttling"
 	fi
 
 	RATE_LIMIT_INTERFACE=$(ip route get "${RATE_LIMIT_DESTINATION}" | awk '{for (field = 1; field <= NF; field++) if ($field == "dev") { print $(field + 1); exit }}')
