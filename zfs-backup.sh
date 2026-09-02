@@ -429,17 +429,18 @@ if [ ${RES} -eq 1 ]; then
 
 	echo "Preparing to send the whole dataset with all its snapshots..." 
 	## Get size of dataset 
-	OUTPUT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1)
+	# OUTPUT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1)
+	ORIG_SIZE_BYTES=$( sudo zfs send -nvP -R ${CURRENT_LOCAL_SNAPSHOT} | awk '/^size/ {print $2}' )
 	## retrieve length and convert into something good for PV
-	ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
-	PV_SIZE=$( parse_size ${ORIG_SIZE})
-	logmsg "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${PV_SIZE}" 
+	# ORIG_SIZE=$(echo $OUTPUT | awk '{print $4}') 
+	DISPLAY_SIZE=$( numfmt --to=iec --suffix=B ${ORIG_SIZE_BYTES} )
+	logmsg "Estimated size of ${SRC_POOL}/${SRC_DATASET} is : ${DISPLAY_SIZE}" 
 	echo "Current LOCAL snapshot is ${CURRENT_LOCAL_SNAPSHOT}" 
 
 	## send the snapshots to the backup server
 	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
     logmsg "Sending all dataset to backup system..." 
-	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
+	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${ORIG_SIZE_BYTES} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -496,7 +497,7 @@ else
 		logmsg "There are less than 2 snapshots" 
 		zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} 
 		exit $ERR_LESS_THAN_2_SNAPS
-    fi
+        fi
 
 	# Finding last snapshot on the backup system 
 	logmsg "=== Checking snapshot alignment between REMOTE and LOCAL systems"
@@ -610,20 +611,21 @@ else
 		# Calculating size of the increment between first snapshot and second snapshot
 		logmsg "Calculating data transfer size approximation..."
 		SIZE=$( compute_size /tmp/diff.txt )
-                SIZE_WRITTEN=$( compute_size_written  ${SRC_POOL}/${SRC_DATASET} ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT}
+                # SIZE_WRITTEN=$( compute_size_written  ${SRC_POOL}/${SRC_DATASET} ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} ) 
+                SIZE_WRITTEN_BYTES=$( sudo zfs send -nvP -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | awk '/^size/ {print $2}' )
 		if $DEBUG ; then
-			echo "==== Computed size is $SIZE" 
+			echo "==== Computed size is ${SIZE} and written is ${SIZE_WRITTEN_BYTES}" 
 		fi
-		PV_SIZE=$( parse_size ${SIZE_WRITTEN} )
+		PV_SIZE=$( numfmt --to=iec --suffix=B ${SIZE_WRITTEN_BYTES} )
 		logmsg "Approximate transfer size is ${PV_SIZE}"
 			  
 		# Sending out the snapshot increment 
 		logmsg "Sending snapshot..."
 		if $DEBUG; then 
-			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${PV_SIZE} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
+			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${SIZE_WRITTEN_BYTES} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
-			| pv -ptebar -s ${PV_SIZE} \
+			| pv -ptebar -s ${SIZE_WRITTEN_BYTES} \
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
@@ -641,3 +643,4 @@ else
 	fi
 fi
 logmsg "Backup operations completed successfully."
+
