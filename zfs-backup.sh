@@ -64,7 +64,7 @@ function usage() {
     echo "		DST_DATASET=<destination ZFS dataset name> "
     echo "		DST_USERNAME=<destination username>"
 	echo "		DST_ADDR=<destination address>"
-	echo ""
+	echo "          BW_PERCENT=<% of end-to-end bandwidth to use>"
 }
 ###################################
 
@@ -224,6 +224,13 @@ function retrieve_remote_dataset_mountpoint() {
 	logmsg "Remote backup system dataset mountpoint is: ${DST_BASE}"
 }
 ################################### 
+function rate_calculation {
+        logmsg "Measuring end-to-end bandwidth to ${DST_ADDR}..."
+	MEASURED_MBPS=$( iperf3 -c "${DST_ADDR}" -t 10 -J | jq '.end.sum_received.bits_per_second / 1048576' )
+	RATE=$( awk -v mbps=${MEASURED_MBPS} -v pct=${BW_PERCENT} 'BEGIN { printf "%d", mbps*pct/100}' )
+	logmsg "Measured Mbps = ${MEASURED_MBPS} Mbps; Rate used = ${RATE} Mbps"
+}
+
 function  display_backup_configuration(){
 	#echo "source base folder      = ${SRC_BASE}"
 	echo "source pool             = ${SRC_POOL}"
@@ -234,6 +241,7 @@ function  display_backup_configuration(){
 	#echo "destination base folder = ${DST_BASE}"
 	echo "destination pool        = ${DST_POOL}"
 	echo "destination dataset     = ${DST_DATASET}"
+	echo "bandwith percentage     = ${BW_PERCENT} "
 	echo "####################################################################################################"
 }
 ######################################################################################
@@ -409,6 +417,11 @@ echo ""
 logmsg "Current local snapshot = ${CURRENT_LOCAL_SNAPSHOT}"
 echo ""
 #############################################################################################################
+# Measuring bandwidth
+rate_calculation
+
+sudo tc qdisc add dev tailscale0 root tbf rate ${RATE}mbit burst 32kbit latency 400ms
+
 #############################################################################################################
 ## Checking if the dataset is already present at the backup server: 
 OUTPUT=$(ssh ${DST_USERNAME}@${DST_ADDR} zfs list -t snapshot ${DST_POOL}/${DST_DATASET} 2>&1 2> /dev/null) 
@@ -440,7 +453,7 @@ if [ ${RES} -eq 1 ]; then
 	## send the snapshots to the backup server
 	## zfs send -R zfspool/Test@2024.06.27-10.43.07 | pv | ssh finzic@r4spi.local zfs receive testpool/Test-2
     logmsg "Sending all dataset to backup system..." 
-	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${ORIG_SIZE_BYTES} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
+	sudo zfs send -R ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${ORIG_SIZE_BYTES} -L ${RATE}M | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 	RES=$?
 	if [ ${RES} -eq 0 ]; then 
 		echo "... Everything OK"
@@ -472,7 +485,7 @@ if [ ${RES} -eq 1 ]; then
 		logmsg "Remote dataset ${DST_POOL}/${DST_DATASET} set as readonly."
 	else
 		logmsg "ERROR setting ${DST_POOL}/${DST_DATASET} as readonly"
-		exit ${ERR_SETTING_DST_READONLY}   
+		exit ${ERR_SETTING_DST_READONLY}
 	fi
 else 
 	# BIG CASE: ongoing backup, already sent once.
@@ -483,7 +496,7 @@ else
 	retrieve_remote_dataset_mountpoint
 
 	display_backup_configuration
-	
+
 	cd ${SRC_BASE}
 	# Removing temp files
 	[ -f /tmp/changed-files.txt ] && rm /tmp/changed-files.txt
@@ -529,15 +542,15 @@ else
 			logmsg "No differences -> no snapshot has been created -> no snapshot is going to be destroyed."
 		fi
 		exit ${ERR_LAST_BACKUP_SNAPSHOT_DATE_NOT_AVAILABLE_LOCALLY}
-	else 
-		echo "There is a snapshot with the same date on LOCAL system." 
+	else
+		echo "There is a snapshot with the same date on LOCAL system."
 	fi
 
 	# From now on, the real 'backup' operation begins.
 
 	# FROM_SNAPSHOT is the local snap with date equal to LAST_SNAPSHOT_DATE_ON_REMOTE
 	FROM_SNAPSHOT=${SRC_POOL}/${SRC_DATASET}@${LAST_SNAPSHOT_DATE_ON_REMOTE}
-	
+
 	if $DEBUG ; then 
 		echo "==== first snapshot               = ${FROM_SNAPSHOT}"
 		echo "==== second snapshot              = ${CURRENT_LOCAL_SNAPSHOT}"
@@ -614,7 +627,7 @@ else
                 # SIZE_WRITTEN=$( compute_size_written  ${SRC_POOL}/${SRC_DATASET} ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} ) 
                 SIZE_WRITTEN_BYTES=$( sudo zfs send -nvP -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | awk '/^size/ {print $2}' )
 		if $DEBUG ; then
-			echo "==== Computed size is ${SIZE} and written is ${SIZE_WRITTEN_BYTES}" 
+			echo "==== Computed size is ${SIZE} and written is ${SIZE_WRITTEN_BYTES}"
 		fi
 		PV_SIZE=$( numfmt --to=iec --suffix=B ${SIZE_WRITTEN_BYTES} )
 		logmsg "Approximate transfer size is ${PV_SIZE}"
@@ -622,10 +635,10 @@ else
 		# Sending out the snapshot increment 
 		logmsg "Sending snapshot..."
 		if $DEBUG; then 
-			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${SIZE_WRITTEN_BYTES} | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
+			echo "==== zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} | pv -ptebar -s ${SIZE_WRITTEN_BYTES} -L ${RATE}M | ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null"
 		fi
 		sudo zfs send -I ${FROM_SNAPSHOT} ${CURRENT_LOCAL_SNAPSHOT} \
-			| pv -ptebar -s ${SIZE_WRITTEN_BYTES} \
+			| pv -ptebar -s ${SIZE_WRITTEN_BYTES} -L ${RATE}M \
 			| ssh ${DST_USERNAME}@${DST_ADDR} sudo zfs recv -v ${DST_POOL}/${DST_DATASET} 2> /dev/null
 		RES=$?
 		if [ ! ${RES} -eq 0 ]; then
@@ -642,5 +655,7 @@ else
 		check_md5sum_on_remote
 	fi
 fi
+logmsg "Removing bandwidth throttle..."
+sudo tc qdisc del dev tailscale0 root
 logmsg "Backup operations completed successfully."
 
