@@ -422,9 +422,10 @@ fi
 LATEST_LOCAL_SNAPSHOT=$(zfs list -t snapshot ${SRC_POOL}/${SRC_DATASET} | tail -n 1 | awk '{print $1}')
 echo "Latest Snapshot is ${LATEST_LOCAL_SNAPSHOT}"
 
-[[ -f /tmp/diff0.txt ]] && rm /tmp/diff0.txt
+rm -f /tmp/diff0.txt
 echo "Finding differences between ${LATEST_LOCAL_SNAPSHOT} and current status of ${SRC_POOL}/${SRC_DATASET} - this could take some time..."
-	sudo zfs diff -F -H -h "${LATEST_LOCAL_SNAPSHOT}" | sudo tee /tmp/diff0.txt > /dev/null
+# shellcheck disable=SC2024
+sudo zfs diff -F -H -h "${LATEST_LOCAL_SNAPSHOT}" > /tmp/diff0.txt
 
 if $DEBUG; then 
 	cat /tmp/diff0.txt
@@ -612,7 +613,8 @@ else
 	## /tmp/diff.txt will contain differences from last snapshot to present situation. 
 	
 	logmsg "Finding all modifications from ${FROM_SNAPSHOT} to ${CURRENT_LOCAL_SNAPSHOT}..."
-	sudo zfs diff -F -H -h "${FROM_SNAPSHOT}" "${CURRENT_LOCAL_SNAPSHOT}" | sudo tee /tmp/diff.txt > /dev/null
+	# shellcheck disable=SC2024
+	sudo zfs diff -F -H -h "${FROM_SNAPSHOT}" "${CURRENT_LOCAL_SNAPSHOT}" > /tmp/diff.txt
     
 	echo "Determining changed files..."
 	# sudo zfs diff -F -H -h ${LAST_SNAP}  \
