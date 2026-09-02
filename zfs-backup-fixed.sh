@@ -226,8 +226,9 @@ function retrieve_remote_dataset_mountpoint() {
 ################################### 
 function rate_calculation {
         logmsg "Measuring end-to-end bandwidth to ${DST_ADDR}..."
-	MEASURED_MBPS=$( iperf3 -c "${DST_ADDR}" -t 10 -J | jq '.end.sum_received.bits_per_second / 1048576' )
+	MEASURED_MBPS=$(iperf3 -c "${DST_ADDR}" -t 10 -J | jq '.end.sum_received.bits_per_second / 1000000')
 	RATE=$(awk -v mbps="${MEASURED_MBPS}" -v pct="${BW_PERCENT}" 'BEGIN { rate = int(mbps * pct / 100); print (rate < 1 ? 1 : rate) }')
+	PV_RATE_BYTES=$(awk -v mbps="${RATE}" 'BEGIN { print int(mbps * 1000000 / 8) }')
 	logmsg "Measured Mbps = ${MEASURED_MBPS} Mbps; Rate used = ${RATE} Mbps"
 }
 
@@ -268,7 +269,7 @@ function configure_rate_limit() {
 	fi
 
 	rate_calculation
-	PV_RATE_ARGS=(-L "${RATE}M")
+	PV_RATE_ARGS=(-8 -L "${PV_RATE_BYTES}")
 	logmsg "Applying a ${RATE} Mbps bandwidth throttle to ${RATE_LIMIT_INTERFACE}."
 	if sudo tc qdisc add dev "${RATE_LIMIT_INTERFACE}" root tbf rate "${RATE}"mbit burst 32kbit latency 400ms; then
 		RATE_LIMIT_APPLIED=true
@@ -301,7 +302,6 @@ function logmsg(){
 ########
 # Main #
 ########
-
 echo ""
 echo "####################################################################################################"
 echo "                 ZFS Backup Script - server name = $(hostname)"
